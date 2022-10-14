@@ -112,7 +112,7 @@ def process(source, **kwargs):
             norm, gamma_min, gamma_max = None, None, None
         with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
             args = [{**{'source': f, 'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
-            res = list(tqdm(pool.imap(process_single_file, args), desc='Processing'))
+            res = list(tqdm(pool.imap(process_single_file, args), desc='Processing', total=len(files)))
             for _, _, _, file_name in res:
                 line = "file '" + os.path.abspath(file_name) + "'\n"
                 writer.write(line.encode())
