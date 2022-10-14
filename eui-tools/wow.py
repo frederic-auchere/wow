@@ -10,6 +10,7 @@ import subprocess
 import numpy as np
 from tempfile import NamedTemporaryFile
 from sunpy.visualization.colormaps import cm
+from multiprocessing import Pool, cpu_count
 
 parser = argparse.ArgumentParser()
 parser.add_argument("source", help="List of files", type=str)
@@ -26,6 +27,7 @@ parser.add_argument("-f", "--flicker", help="Uses different normalization for ea
 parser.add_argument("-r", "--register", help="Uses header information to register the frames", action="store_true")
 parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to video", action="store_true")
 parser.add_argument("-fps", "--frame-rate", help="Number of frames per second", default=12, type=float)
+parser.add_argument("-np", "--n_procs", help="Number of processors to use", default=0, type=int)
 
 
 def make_directory(name):
@@ -55,7 +57,11 @@ def make_frame(image, title=None, norm=None):
     return fig, ax
 
 
-def process_single_file(source, norm=None, gamma_min=None, gamma_max=None, **kwargs):
+def process_single_file(kwargs):
+    source = kwargs['source']
+    norm = kwargs['norm'] if 'norm' in kwargs else None
+    gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
+    gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
     data = {'file': source, 'roi': kwargs['roi']}
     image, header = read_data(data)
     noise = data_noise(image, data)
@@ -98,15 +104,17 @@ def process(source, **kwargs):
     writer = NamedTemporaryFile(delete=False)
     output_directory = make_directory(kwargs['output_directory'])
     if kwargs['by_frame']:
-        norm, gamma_min, gamma_max, _ = process_single_file(files[0], **kwargs)
+        norm, gamma_min, gamma_max, _ = process_single_file({**{'source': files[0]}, **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
-        for f in tqdm(files, desc='Processing'):
-            _, _, _, file_name = process_single_file(f, norm=norm, gamma_min=gamma_min, gamma_max=gamma_max, **kwargs)
-            line = "file '" + os.path.abspath(file_name) + "'\n"
-            writer.write(line.encode())
-            line = f"duration {1/fps:.2f}\n"
-            writer.write(line.encode())
+        with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
+            args = [{**{'source': f, 'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
+            res = list(tqdm(pool.imap(process_single_file, args), desc='Processing'))
+            for _, _, _, file_name in res:
+                line = "file '" + os.path.abspath(file_name) + "'\n"
+                writer.write(line.encode())
+                line = f"duration {1/fps:.2f}\n"
+                writer.write(line.encode())
     else:
         for i, f in tqdm(enumerate(files), desc='Reading files'):
             data = {'file': f, 'roi': kwargs['roi']}
@@ -154,7 +162,7 @@ def process(source, **kwargs):
 def main(**kwargs):
     source = kwargs['source']
     if os.path.isdir(source):
-        kwargs['source'] += '*.fits'
+        kwargs['source'] = os.path.join(kwargs['source'], '*.fits')
     process(**kwargs)
 
 
