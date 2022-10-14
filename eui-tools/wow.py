@@ -11,6 +11,9 @@ import numpy as np
 from tempfile import NamedTemporaryFile
 from sunpy.visualization.colormaps import cm
 from multiprocessing import Pool, cpu_count
+import matplotlib as mp
+
+mp.use('Agg')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("source", help="List of files", type=str)
