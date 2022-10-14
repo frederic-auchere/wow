@@ -1,0 +1,7 @@
+numpy>=1.20.3
+opencv-python>=4.5.1
+scipy>=1.7.2
+tqdm>=4.64
+astropy>=5.1
+matplotlib>=3.6.1
+sunpy>=4.0.5
