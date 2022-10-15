@@ -65,11 +65,10 @@ def process_single_file(kwargs):
     norm = kwargs['norm'] if 'norm' in kwargs else None
     gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
     gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
-    xy = kwargs['xy'] if 'xy' in kwargs else None
+    x0, y0 = kwargs['xy'] if 'xy' in kwargs else None, None
     data = {'file': source, 'roi': kwargs['roi']}
     image, header = read_data(data)
-    if xy:
-        x0, y0 = xy
+    if x0 and y0 and kwargs['register']:
         image = register(image, header, x0=x0, y0=y0, order=2, opencv=True)
     noise = data_noise(image, data)
 
