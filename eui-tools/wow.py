@@ -65,8 +65,11 @@ def process_single_file(kwargs):
     norm = kwargs['norm'] if 'norm' in kwargs else None
     gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
     gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
+    reference_header = kwargs['reference'] if 'reference' in kwargs else None
     data = {'file': source, 'roi': kwargs['roi']}
     image, header = read_data(data)
+    if reference_header:
+        image = register(image, header, reference_header)
     noise = data_noise(image, data)
 
     if gamma_min is None:
@@ -97,7 +100,7 @@ def process_single_file(kwargs):
     except IOError:
         raise IOError
 
-    return norm, gamma_min, gamma_max, out_file
+    return norm, gamma_min, gamma_max, out_file, header
 
 
 def process(source, **kwargs):
@@ -107,13 +110,14 @@ def process(source, **kwargs):
     writer = NamedTemporaryFile(delete=False)
     output_directory = make_directory(kwargs['output_directory'])
     if kwargs['by_frame']:
-        norm, gamma_min, gamma_max, _ = process_single_file({**{'source': files[0]}, **kwargs})
+        norm, gamma_min, gamma_max, _, reference_header = process_single_file({**{'source': files[0]}, **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
         with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
-            args = [{**{'source': f, 'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
+            args = [{**{'source': f, 'reference': reference_header if kwargs['register'] else None,
+                        'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
             res = list(tqdm(pool.imap(process_single_file, args), desc='Processing', total=len(files)))
-            for _, _, _, file_name in res:
+            for _, _, _, file_name, _ in res:
                 line = "file '" + os.path.abspath(file_name) + "'\n"
                 writer.write(line.encode())
                 line = f"duration {1/fps:.2f}\n"
@@ -122,9 +126,13 @@ def process(source, **kwargs):
         for i, f in tqdm(enumerate(files), desc='Reading files'):
             data = {'file': f, 'roi': kwargs['roi']}
             image, header = read_data(data)
+            image[image < 0] = 0
             if i == 0:
                 cube = np.empty(shape=image.shape + (len(files),))
-            image[image < 0] = 0
+                reference_header = header
+            else:
+                if kwargs['register']:
+                    image = register(image, header, reference_header)
             cube[:, :, i] = image
         noise = data_noise(cube, data)
         out, _ = utils.wow(cube,
@@ -156,7 +164,7 @@ def process(source, **kwargs):
                         "-i", writer.name,
                         "-vcodec", "libx264",
                         "-pix_fmt", "yuv420p",
-                        "-crf", "20",
+                        "-crf", "22",
                         "-r", f"{fps}",
                         "-y", os.path.join(output_directory, 'wow.mp4')])
     os.unlink(writer.name)
