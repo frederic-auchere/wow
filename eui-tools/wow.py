@@ -65,11 +65,12 @@ def process_single_file(kwargs):
     norm = kwargs['norm'] if 'norm' in kwargs else None
     gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
     gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
-    reference_header = kwargs['reference'] if 'reference' in kwargs else None
+    x0 = kwargs['x0'] if 'x0' in kwargs else None
+    y0 = kwargs['y0'] if 'y0' in kwargs else None
     data = {'file': source, 'roi': kwargs['roi']}
     image, header = read_data(data)
-    # if reference_header:
-    #     image = register(image, header, reference_header)
+    if x0 and y0:
+        image = register(image, header, x0=x0, y0=y0)
     noise = data_noise(image, data)
 
     if gamma_min is None:
@@ -113,9 +114,13 @@ def process(source, **kwargs):
         norm, gamma_min, gamma_max, _, reference_header = process_single_file({**{'source': files[0]}, **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
-        reference = reference_header if kwargs['register'] else None
+        if kwargs['register']:
+            x0, y0 = reference_header["CRVAL1"] / reference_header["CDELT1"],\
+                     reference_header["CRVAL2"] / reference_header["CDELT2"]
+        else:
+            x0, y0 = None, None
         with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
-            args = [{**{'source': f, 'reference': reference,
+            args = [{**{'source': f, 'x0': x0, 'y0': y0,
                         'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
             res = list(tqdm(pool.imap(process_single_file, args), desc='Processing', total=len(files)))
             for _, _, _, file_name, _ in res:

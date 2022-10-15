@@ -91,10 +91,11 @@ def read_data(data):
     return image[roi[1]:roi[3], roi[0]:roi[2]], header
 
 
-def register(img, header, reference_header, order=3, opencv=False):
+def register(img, header, x0=0, y0=0, reference_header=None, order=3, opencv=False):
 
-    x0, y0 = reference_header["CRVAL1"] / reference_header["CDELT1"],\
-             reference_header["CRVAL2"] / reference_header["CDELT2"]
+    if reference_header:
+        x0, y0 = reference_header["CRVAL1"] / reference_header["CDELT1"],\
+                 reference_header["CRVAL2"] / reference_header["CDELT2"]
     x, y = header["CRVAL1"] / header["CDELT1"], header["CRVAL2"] / header["CDELT2"]
     euclidian = EuclidianTransform(x - x0, y - y0, 0, 1, direction='inverse')
     rectifier = Rectifier(euclidian)
