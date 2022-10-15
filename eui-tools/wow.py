@@ -65,12 +65,12 @@ def process_single_file(kwargs):
     norm = kwargs['norm'] if 'norm' in kwargs else None
     gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
     gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
-    x0 = kwargs['x0'] if 'x0' in kwargs else None
-    y0 = kwargs['y0'] if 'y0' in kwargs else None
+    xy = kwargs['xy'] if 'xy' in kwargs else None
     data = {'file': source, 'roi': kwargs['roi']}
     image, header = read_data(data)
-    if x0 and y0:
-        image = register(image, header, x0=x0, y0=y0)
+    if xy:
+        x0, y0 = xy
+        image = register(image, header, x0=x0, y0=y0, order=2, opencv=True)
     noise = data_noise(image, data)
 
     if gamma_min is None:
@@ -101,7 +101,8 @@ def process_single_file(kwargs):
     except IOError:
         raise IOError
 
-    return norm, gamma_min, gamma_max, out_file, header
+    xy = header["CRVAL1"] / header["CDELT1"], header["CRVAL2"] / header["CDELT2"]
+    return norm, gamma_min, gamma_max, xy, out_file
 
 
 def process(source, **kwargs):
@@ -111,19 +112,14 @@ def process(source, **kwargs):
     writer = NamedTemporaryFile(delete=False)
     output_directory = make_directory(kwargs['output_directory'])
     if kwargs['by_frame']:
-        norm, gamma_min, gamma_max, _, reference_header = process_single_file({**{'source': files[0]}, **kwargs})
+        norm, gamma_min, gamma_max, xy, _ = process_single_file({**{'source': files[0]}, **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
-        if kwargs['register']:
-            x0, y0 = reference_header["CRVAL1"] / reference_header["CDELT1"],\
-                     reference_header["CRVAL2"] / reference_header["CDELT2"]
-        else:
-            x0, y0 = None, None
         with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
-            args = [{**{'source': f, 'x0': x0, 'y0': y0,
+            args = [{**{'source': f, 'xy': xy,
                         'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
             res = list(tqdm(pool.imap(process_single_file, args), desc='Processing', total=len(files)))
-            for _, _, _, file_name, _ in res:
+            for _, _, _, _, file_name in res:
                 line = "file '" + os.path.abspath(file_name) + "'\n"
                 writer.write(line.encode())
                 line = f"duration {1/fps:.2f}\n"
@@ -135,10 +131,9 @@ def process(source, **kwargs):
             image[image < 0] = 0
             if i == 0:
                 cube = np.empty(shape=image.shape + (len(files),))
-                reference_header = header
             else:
                 if kwargs['register']:
-                    image = register(image, header, reference_header)
+                    image = register(image, header)
             cube[:, :, i] = image
         noise = data_noise(cube, data)
         out, _ = utils.wow(cube,
