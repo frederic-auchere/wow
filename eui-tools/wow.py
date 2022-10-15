@@ -68,8 +68,8 @@ def process_single_file(kwargs):
     reference_header = kwargs['reference'] if 'reference' in kwargs else None
     data = {'file': source, 'roi': kwargs['roi']}
     image, header = read_data(data)
-    if reference_header:
-        image = register(image, header, reference_header)
+    # if reference_header:
+    #     image = register(image, header, reference_header)
     noise = data_noise(image, data)
 
     if gamma_min is None:
@@ -113,8 +113,9 @@ def process(source, **kwargs):
         norm, gamma_min, gamma_max, _, reference_header = process_single_file({**{'source': files[0]}, **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
+        reference = reference_header if kwargs['register'] else None
         with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
-            args = [{**{'source': f, 'reference': reference_header if kwargs['register'] else None,
+            args = [{**{'source': f, 'reference': reference,
                         'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
             res = list(tqdm(pool.imap(process_single_file, args), desc='Processing', total=len(files)))
             for _, _, _, file_name, _ in res:
