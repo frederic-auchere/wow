@@ -24,13 +24,14 @@ parser.add_argument("-ns", "--n_scales", help="Number of wavelet scales", defaul
 parser.add_argument("-gw", "--gamma_weight", help="Weight of gamma-stretched image", default=0, type=float)
 parser.add_argument("-g", "--gamma", help="Gamma exponent", default=2, type=float)
 parser.add_argument("-nw", "--no_whitening", help="Do not apply whitening (WOW!)", action="store_true")
-parser.add_argument("-bf", "--by_frame", help="Applies denoising and/or whitening by frame", action="store_true")
+parser.add_argument("-t", "--temporal", help="Applies temporal denoising and/or whitening", action="store_true")
 parser.add_argument("-roi", help="Region of interest [bottom left, top right corners]", type=int, nargs=4)
 parser.add_argument("-f", "--flicker", help="Uses different normalization for each frame", action="store_true")
 parser.add_argument("-r", "--register", help="Uses header information to register the frames", action="store_true")
 parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to video", action="store_true")
 parser.add_argument("-fps", "--frame-rate", help="Number of frames per second", default=12, type=float)
 parser.add_argument("-np", "--n_procs", help="Number of processors to use", default=0, type=int)
+parser.add_argument("-ck", "--clock", help="Inset clock", action="store_true")
 
 
 def make_directory(name):
@@ -46,7 +47,7 @@ def make_directory(name):
         return ''
 
 
-def make_frame(image, title=None, norm=None):
+def make_frame(image, title=None, norm=None, clock=None):
     dpi = 300
     fig_size = [s/dpi for s in image.shape]
     fig, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
@@ -54,7 +55,7 @@ def make_frame(image, title=None, norm=None):
     if norm is None:
         norm = ImageNormalize(image, interval=PercentileInterval(99.9), stretch=LinearStretch())
     cmap = plt.get_cmap('solar orbiterhri_euv174')
-    make_subplot(image, ax, norm, cmap=cmap, title=title)
+    make_subplot(image, ax, norm, cmap=cmap, title=title, clock=clock)
     fig.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
 
     return fig, ax
@@ -88,7 +89,8 @@ def process_single_file(kwargs):
                        gamma_min=gamma_min,
                        gamma_max=gamma_max)
 
-    fig, ax = make_frame(out, title=header['DATE-OBS'][:-4], norm=norm)
+    clock = header['DATE-OBS'] if 'clock' in kwargs else None
+    fig, ax = make_frame(out, title=header['DATE-OBS'][:-4], norm=norm, clock=clock)
     norm = ax.get_images()[0].norm
 
     output_directory = make_directory(kwargs['output_directory'])
@@ -110,7 +112,7 @@ def process(source, **kwargs):
     fps = kwargs["frame_rate"]
     writer = NamedTemporaryFile(delete=False)
     output_directory = make_directory(kwargs['output_directory'])
-    if kwargs['by_frame']:
+    if not kwargs['temporal']:
         norm, gamma_min, gamma_max, xy, _ = process_single_file({**{'source': files[0]}, **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
@@ -130,9 +132,10 @@ def process(source, **kwargs):
             image[image < 0] = 0
             if i == 0:
                 cube = np.empty(shape=image.shape + (len(files),))
+                x0, y0 = header["CRVAL1"] / header["CDELT1"], header["CRVAL2"] / header["CDELT2"]
             else:
                 if kwargs['register']:
-                    image = register(image, header)
+                    image = register(image, header, x0=x0, y0=y0)
             cube[:, :, i] = image
         noise = data_noise(cube, data)
         out, _ = utils.wow(cube,

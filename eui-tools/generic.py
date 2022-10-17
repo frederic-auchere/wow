@@ -4,10 +4,11 @@ import numpy as np
 from rectify.rectify import EuclidianTransform, Rectifier
 from matplotlib import patches
 from astropy.io import fits
+from plotting import draw_clock
 
 
 def make_subplot(image, ax, norm,
-                 title=None, x_lims=None, y_lims=None, interpolation='nearest', cmap='gray', inset=None):
+                 title=None, x_lims=None, y_lims=None, interpolation='nearest', cmap='gray', inset=None, clock=None):
     ax.imshow(image, origin='lower', norm=norm, cmap=cmap, interpolation=interpolation)
     if x_lims is None:
         x_lims = 0, image.shape[1]
@@ -35,6 +36,8 @@ def make_subplot(image, ax, norm,
         rect = patches.Rectangle((inset[0], inset[2]), inset[1] - inset[0], inset[3] - inset[2],
                                  linewidth=1, edgecolor='white', facecolor='none', alpha=0.5)
         ax.add_patch(rect)
+    if clock:
+        draw_clock(clock, ax)
 
 
 def read_data(data):
