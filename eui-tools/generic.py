@@ -14,10 +14,17 @@ def make_subplot(image, ax, norm,
         x_lims = 0, image.shape[1]
     if y_lims is None:
         y_lims = 0, image.shape[0]
+    foot_position = 0
+    if clock:
+        size = 0.05
+        draw_clock(clock, ax, size=size)
+        foot_position += size
     if title:
-        ax.text(x_lims[0]+5, y_lims[0]+5,
+        ax.text(foot_position, 0,
                 title,
-                bbox={'facecolor': 'white', 'edgecolor': 'none', 'alpha': 0.5, 'pad': 1},
+                transform=ax.transAxes,
+                color='white',
+                # bbox={'facecolor': 'white', 'edgecolor': 'none', 'alpha': 0.5, 'pad': 1},
                 ha='left', va='bottom')
     ax.set_xlim(*x_lims)
     ax.set_ylim(*y_lims)
@@ -36,8 +43,6 @@ def make_subplot(image, ax, norm,
         rect = patches.Rectangle((inset[0], inset[2]), inset[1] - inset[0], inset[3] - inset[2],
                                  linewidth=1, edgecolor='white', facecolor='none', alpha=0.5)
         ax.add_patch(rect)
-    if clock:
-        draw_clock(clock, ax)
 
 
 def read_data(data):
