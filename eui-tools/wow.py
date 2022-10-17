@@ -32,6 +32,8 @@ parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to vide
 parser.add_argument("-fps", "--frame-rate", help="Number of frames per second", default=12, type=float)
 parser.add_argument("-np", "--n_procs", help="Number of processors to use", default=0, type=int)
 parser.add_argument("-ck", "--clock", help="Inset clock", action="store_true")
+parser.add_argument("-fn", "--first_n", help="Process only the first N frames", type=int)
+parser.add_argument("-i", "--interval", help="Percentile to use for scaling", default=99.9, type=float)
 
 
 def make_directory(name):
@@ -109,6 +111,8 @@ def process_single_file(kwargs):
 def process(source, **kwargs):
     files = glob.glob(source)
     files.sort()
+    if 'first_n' in kwargs:
+        files = files[0:kwargs['first_n']]
     fps = kwargs["frame_rate"]
     writer = NamedTemporaryFile(delete=False)
     output_directory = make_directory(kwargs['output_directory'])
@@ -146,7 +150,7 @@ def process(source, **kwargs):
                            whitening=not kwargs['no_whitening'],
                            gamma=kwargs['gamma'],
                            h=kwargs['gamma_weight'])
-        norm = ImageNormalize(out, interval=PercentileInterval(99.9), stretch=LinearStretch())
+        norm = ImageNormalize(out, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
         for i, f in tqdm(enumerate(files), desc='Writing files'):
             fig, ax = make_frame(out[:, :, i], title=None, norm=norm)
             out_file = os.path.join(output_directory, os.path.basename(f + '.png'))

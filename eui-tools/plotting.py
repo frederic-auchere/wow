@@ -12,13 +12,15 @@ def draw_clock(date, ax, size=0.05):
     ax = ax.inset_axes([0, 0, size, size], projection='polar')
     ax.plot((0, h), (0, 0.5), color='white')
     ax.plot((0, m), (0, 1), color='white')
+    ax.scatter(np.linspace(0, 2 * np.pi, 12, endpoint=False), np.ones(12), color='white', s=1)
 
-    for sp in ax.spines:
-        ax.spines[sp].set_color('white')
+    for sp in ax.spines.values():
+        sp.set_color('white')
+        sp.set_visible(False)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
     ax.patch.set_facecolor('none')
     ax.grid(False)
-    ax.set_xticks(np.linspace(0, 2*np.pi, 12, endpoint=False))
+    ax.set_rmax(1.05)
     ax.set_xticklabels([])
     ax.set_yticklabels([])
