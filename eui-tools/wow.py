@@ -2,7 +2,8 @@ import argparse
 import os
 import glob
 from watroo import utils
-from generic import read_data, register, make_subplot, data_noise
+from image import Image
+from plotting import make_subplot
 import matplotlib.pyplot as plt
 from astropy.visualization import ImageNormalize, PercentileInterval, LinearStretch
 from tqdm import tqdm
@@ -69,20 +70,18 @@ def process_single_file(kwargs):
     gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
     gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
     x0, y0 = kwargs['xy'] if 'xy' in kwargs else None, None
-    data = {'file': source, 'roi': kwargs['roi']}
-    image, header = read_data(data)
+    image = Image(source, roi=kwargs['roi'])
     if x0 and y0 and kwargs['register']:
-        image = register(image, header, x0=x0, y0=y0, order=2, opencv=True)
-    noise = data_noise(image, data)
+        image.register(x0=x0, y0=y0, order=2, opencv=True)
 
     if gamma_min is None:
-        gamma_min = image.min()
+        gamma_min = np.min(image)
     if gamma_max is None:
-        gamma_max = image.max()
+        gamma_max = np.max(image)
 
-    out, _ = utils.wow(image,
+    out, _ = utils.wow(image.data,
                        denoise_coefficients=kwargs['denoise'],
-                       noise=noise,
+                       noise=image.noise,
                        n_scales=kwargs['n_scales'],
                        bilateral=None if kwargs['no_bilateral'] else 1,
                        whitening=not kwargs['no_whitening'],
@@ -91,8 +90,12 @@ def process_single_file(kwargs):
                        gamma_min=gamma_min,
                        gamma_max=gamma_max)
 
-    clock = header['DATE-OBS'] if 'clock' in kwargs else None
-    fig, ax = make_frame(out, title=header['DATE-OBS'][:-4], norm=norm, clock=clock)
+    clock = image.header['DATE-OBS'] if 'clock' in kwargs else None
+    if 'norm' in kwargs:
+        norm = kwargs['norm']
+    else:
+        norm = ImageNormalize(out, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
+    fig, ax = make_frame(out, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock)
     norm = ax.get_images()[0].norm
 
     output_directory = make_directory(kwargs['output_directory'])
@@ -104,7 +107,7 @@ def process_single_file(kwargs):
     except IOError:
         raise IOError
 
-    xy = header["CRVAL1"] / header["CDELT1"], header["CRVAL2"] / header["CDELT2"]
+    xy = image.header["CRVAL1"] / image.header["CDELT1"], image.header["CRVAL2"] / image.header["CDELT2"]
     return norm, gamma_min, gamma_max, xy, out_file
 
 
@@ -117,7 +120,8 @@ def process(source, **kwargs):
     writer = NamedTemporaryFile(delete=False)
     output_directory = make_directory(kwargs['output_directory'])
     if not kwargs['temporal']:
-        norm, gamma_min, gamma_max, xy, _ = process_single_file({**{'source': files[0]}, **kwargs})
+        norm, gamma_min, gamma_max, xy, _ = process_single_file({**{'source': files[0], 'interval': kwargs['interval']},
+                                                                 **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
         with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
@@ -131,17 +135,18 @@ def process(source, **kwargs):
                 writer.write(line.encode())
     else:
         for i, f in tqdm(enumerate(files), desc='Reading files'):
-            data = {'file': f, 'roi': kwargs['roi']}
-            image, header = read_data(data)
-            image[image < 0] = 0
+            image = Image(f, roi=kwargs['roi'])
+            image.data[image.data < 0] = 0
             if i == 0:
                 cube = np.empty(shape=image.shape + (len(files),))
-                x0, y0 = header["CRVAL1"] / header["CDELT1"], header["CRVAL2"] / header["CDELT2"]
+                noise = np.empty(shape=image.shape + (len(files),))
+                x0 = image.header["CRVAL1"] / image.header["CDELT1"]
+                y0 = image.header["CRVAL2"] / image.header["CDELT2"]
             else:
                 if kwargs['register']:
-                    image = register(image, header, x0=x0, y0=y0)
+                    image.register(image, x0=x0, y0=y0)
             cube[:, :, i] = image
-        noise = data_noise(cube, data)
+            noise[:, :, i] = image.noise
         out, _ = utils.wow(cube,
                            denoise_coefficients=kwargs['denoise'],
                            noise=noise,
