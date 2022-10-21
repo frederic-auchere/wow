@@ -1,6 +1,7 @@
 import argparse
 import os
 import glob
+import json
 from watroo import utils
 from image import Image
 from plotting import make_subplot
@@ -10,44 +11,12 @@ from tqdm import tqdm
 import subprocess
 import numpy as np
 from tempfile import NamedTemporaryFile
+from generic import make_directory
 from sunpy.visualization.colormaps import cm
 from multiprocessing import Pool, cpu_count
 import matplotlib as mp
 
 mp.use('Agg')
-
-parser = argparse.ArgumentParser()
-parser.add_argument("source", help="List of files", type=str)
-parser.add_argument("-o", "--output_directory", help="Output directory", default=None, type=str)
-parser.add_argument("-d", "--denoise", help="Denoising coefficients", default=[], type=float, nargs="+")
-parser.add_argument("-nb", "--no_bilateral", help="Do not use edge-aware (bilateral) transform", action="store_true")
-parser.add_argument("-ns", "--n_scales", help="Number of wavelet scales", default=None, type=int)
-parser.add_argument("-gw", "--gamma_weight", help="Weight of gamma-stretched image", default=0, type=float)
-parser.add_argument("-g", "--gamma", help="Gamma exponent", default=2, type=float)
-parser.add_argument("-nw", "--no_whitening", help="Do not apply whitening (WOW!)", action="store_true")
-parser.add_argument("-t", "--temporal", help="Applies temporal denoising and/or whitening", action="store_true")
-parser.add_argument("-roi", help="Region of interest [bottom left, top right corners]", type=int, nargs=4)
-parser.add_argument("-f", "--flicker", help="Uses different normalization for each frame", action="store_true")
-parser.add_argument("-r", "--register", help="Uses header information to register the frames", action="store_true")
-parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to video", action="store_true")
-parser.add_argument("-fps", "--frame-rate", help="Number of frames per second", default=12, type=float)
-parser.add_argument("-np", "--n_procs", help="Number of processors to use", default=0, type=int)
-parser.add_argument("-ck", "--clock", help="Inset clock", action="store_true")
-parser.add_argument("-fn", "--first_n", help="Process only the first N frames", type=int)
-parser.add_argument("-i", "--interval", help="Percentile to use for scaling", default=99.9, type=float)
-
-
-def make_directory(name):
-    if name:
-        if os.path.isdir(name):
-            return name
-        try:
-            os.mkdir(name)
-            return name
-        except FileNotFoundError:
-            return ''
-    else:
-        return ''
 
 
 def make_frame(image, title=None, norm=None, clock=None):
@@ -66,36 +35,37 @@ def make_frame(image, title=None, norm=None, clock=None):
 
 def process_single_file(kwargs):
     source = kwargs['source']
-    norm = kwargs['norm'] if 'norm' in kwargs else None
     gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
     gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
-    x0, y0 = kwargs['xy'] if 'xy' in kwargs else None, None
+    xy = kwargs['xy'] if 'xy' in kwargs else None
     image = Image(source, roi=kwargs['roi'])
-    if x0 and y0 and kwargs['register']:
-        image.register(x0=x0, y0=y0, order=2, opencv=True)
 
     if gamma_min is None:
         gamma_min = np.min(image)
     if gamma_max is None:
         gamma_max = np.max(image)
 
-    out, _ = utils.wow(image.data,
-                       denoise_coefficients=kwargs['denoise'],
-                       noise=image.noise,
-                       n_scales=kwargs['n_scales'],
-                       bilateral=None if kwargs['no_bilateral'] else 1,
-                       whitening=not kwargs['no_whitening'],
-                       gamma=kwargs['gamma'],
-                       h=kwargs['gamma_weight'],
-                       gamma_min=gamma_min,
-                       gamma_max=gamma_max)
+    image.data, _ = utils.wow(image.data,
+                              denoise_coefficients=kwargs['denoise'],
+                              noise=image.noise,
+                              n_scales=kwargs['n_scales'],
+                              bilateral=None if kwargs['no_bilateral'] else 1,
+                              whitening=not kwargs['no_whitening'],
+                              gamma=kwargs['gamma'],
+                              h=kwargs['gamma_weight'],
+                              gamma_min=gamma_min,
+                              gamma_max=gamma_max)
+
+    if kwargs['register']:
+        is_fsi = 'FSI' in image.header['TELESCOP'] if 'TELESCOP' in image.header else False
+        image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
 
     clock = image.header['DATE-OBS'] if 'clock' in kwargs else None
     if 'norm' in kwargs:
         norm = kwargs['norm']
     else:
-        norm = ImageNormalize(out, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
-    fig, ax = make_frame(out, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock)
+        norm = ImageNormalize(image.data, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
+    fig, ax = make_frame(image.data, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock)
     norm = ax.get_images()[0].norm
 
     output_directory = make_directory(kwargs['output_directory'])
@@ -107,13 +77,23 @@ def process_single_file(kwargs):
     except IOError:
         raise IOError
 
-    xy = image.header["CRVAL1"] / image.header["CDELT1"], image.header["CRVAL2"] / image.header["CDELT2"]
+    xy = image.header["CRVAL1"], image.header["CRVAL2"]
     return norm, gamma_min, gamma_max, xy, out_file
 
 
 def process(source, **kwargs):
-    files = glob.glob(source)
-    files.sort()
+    if os.path.isfile(source) and os.path.splitext(source)[1] == '.json':
+        with open(source) as json_file:
+            records = json.load(json_file)
+        files = list(records.keys())
+        dxy = list(records.values())
+    else:
+        files = glob.glob(source)
+        if len(files) == 0:
+            print('No files found')
+            return
+        files.sort()
+        dxy = ((0, 0),) * len(files)
     if 'first_n' in kwargs:
         files = files[0:kwargs['first_n']]
     fps = kwargs["frame_rate"]
@@ -124,15 +104,16 @@ def process(source, **kwargs):
                                                                  **kwargs})
         if kwargs['flicker']:
             norm, gamma_min, gamma_max = None, None, None
+        nxy = [(xy[0] + dx, xy[1] + dy) for (dx, dy) in dxy]
+        pool_args = [{**{'source': f, 'xy': n, 'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max},
+                      **kwargs} for f, n in zip(files, nxy)]
         with Pool(cpu_count() if kwargs['n_procs'] == 0 else kwargs['n_procs']) as pool:
-            args = [{**{'source': f, 'xy': xy,
-                        'norm': norm, 'gamma_min': gamma_min, 'gamma_max': gamma_max}, **kwargs} for f in files]
-            res = list(tqdm(pool.imap(process_single_file, args), desc='Processing', total=len(files)))
-            for _, _, _, _, file_name in res:
-                line = "file '" + os.path.abspath(file_name) + "'\n"
-                writer.write(line.encode())
-                line = f"duration {1/fps:.2f}\n"
-                writer.write(line.encode())
+            res = list(tqdm(pool.imap(process_single_file, pool_args), desc='Processing', total=len(files)))
+        for _, _, _, _, file_name in res:
+            line = "file '" + os.path.abspath(file_name) + "'\n"
+            writer.write(line.encode())
+            line = f"duration {1/fps:.2f}\n"
+            writer.write(line.encode())
     else:
         for i, f in tqdm(enumerate(files), desc='Reading files'):
             image = Image(f, roi=kwargs['roi'])
@@ -187,8 +168,3 @@ def main(**kwargs):
     if os.path.isdir(source):
         kwargs['source'] = os.path.join(kwargs['source'], '*.fits')
     process(**kwargs)
-
-
-if __name__ == '__main__':
-    args = parser.parse_args()
-    main(**vars(args))
