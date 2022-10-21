@@ -24,4 +24,5 @@ def main():
     parser.add_argument("-i", "--interval", help="Percentile to use for scaling", default=99.9, type=float)
 
     args = parser.parse_args()
+
     main(**vars(args))
