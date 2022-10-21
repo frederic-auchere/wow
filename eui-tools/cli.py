@@ -1,5 +1,5 @@
 import argparse
-from .wow import main
+from wow import main
 
 
 def main():
