@@ -41,7 +41,7 @@ parser.add_argument("-i", "--interval", help="Percentile to use for scaling", de
 
 def make_frame(image, title=None, norm=None, clock=None):
     dpi = 300
-    fig_size = [s/dpi for s in image.shape]
+    fig_size = [s/dpi for s in image.shape[::-1]]
     fig, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
 
     if norm is None:
