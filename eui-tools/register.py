@@ -7,18 +7,25 @@ import json
 from image import Image
 from generic import make_directory
 from tqdm import tqdm
-from scipy.ndimage import correlate
+from astropy.time import Time
+# from scipy.ndimage import correlate
 
 parser = argparse.ArgumentParser()
 parser.add_argument("source", help="List of files", type=str)
 parser.add_argument("-o", "--output_directory", help="Output directory", default=None, type=str)
-parser.add_argument("-r", "--reference", help="Reference image number", default=-1, type=int)
+parser.add_argument("-fn", "--first_n", help="Process only the first N frames", type=int)
+parser.add_argument("-r", "--reference", help="Reference image number", default=0, type=int)
+
+
+def linear(x, a, b):
+    return a*x + b
 
 
 def cross_correlate(image, reference):
-    image = np.copy(np.sqrt(np.array(image)[512:512+1024, 512:512+1024]))
-    cc = cv2.matchTemplate(np.sqrt(np.array(reference)), image, cv2.TM_CCOEFF_NORMED)
-    cy, cx = np.unravel_index(np.argmax(cc, axis=None), cc.shape)
+    image = np.copy(np.array(image)[256:-256, 256:-256])
+    cc = cv2.matchTemplate(np.array(reference), image, cv2.TM_SQDIFF_NORMED)
+    # cc = correlate(image, np.array(reference))
+    cy, cx = np.unravel_index(np.argmin(cc, axis=None), cc.shape)
 
     xi = [cx - 1, cx, cx + 1]
     yi = [cy - 1, cy, cy + 1]
@@ -51,23 +58,39 @@ def process(source, **kwargs):
         print('No files found')
         return
     files.sort()
+    if 'first_n' in kwargs:
+        files = files[0:kwargs['first_n']]
     if kwargs['reference'] == -1:
         kwargs['reference'] = len(files)//2
     elif kwargs['reference'] > len(files):
         kwargs['reference'] = 0
     reference = Image(files[kwargs['reference']])
-    reference_crvals = reference.header['CRVAL1'], reference.header['CRVAL2']
     output = {}
+    crval1 = []
+    crval2 = []
+    date = []
     for f in tqdm(files, desc='Registering'):
         image = Image(f)
-        dx, dy = cross_correlate(image, reference) if f != files[kwargs['reference']] else (0, 0)
-        dx *= image.header['CDELT1']
-        dy *= image.header['CDELT2']
-        crota = np.radians(image.header['CROTA'])
-        delta_crval1 = np.cos(-crota) * dx - np.sin(-crota) * dy
-        delta_crval2 = np.sin(-crota) * dx + np.cos(-crota) * dy
-        output[f] = image.header['CRVAL1'] - reference_crvals[0] - delta_crval1, \
-                    image.header['CRVAL2'] - reference_crvals[1] - delta_crval2
+        #dx, dy = cross_correlate(image, reference) if f != files[kwargs['reference']] else (0, 0)
+        # dx *= image.header['CDELT1']
+        # dy *= image.header['CDELT2']
+        # crota = -np.radians(image.header['CROTA'])
+        # delta_crval1 = np.cos(-crota) * dx - np.sin(-crota) * dy
+        # delta_crval2 = np.sin(-crota) * dx + np.cos(-crota) * dy
+        # output[f] = delta_crval1, delta_crval2
+        crval1.append(image.header['CRVAL1'] - reference.header['CRVAL1'])
+        crval2.append(image.header['CRVAL2'] - reference.header['CRVAL2'])
+        date.append(image.header['DATE-OBS'])
+
+    time = Time(date).mjd
+
+    polynomial = np.polynomial.Polynomial
+    crval1_fit = polynomial.fit(time, crval1, 2)
+    crval2_fit = polynomial.fit(time, crval2, 2)
+
+    for f, t in zip(files, time):
+        output[f] = crval1_fit(t), crval2_fit(t)
+
     output_directory = make_directory(kwargs['output_directory'])
     with open(os.path.join(output_directory, 'register.json'), 'w') as f:
         json.dump(output, f)
