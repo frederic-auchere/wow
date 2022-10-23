@@ -8,7 +8,7 @@
 
 from setuptools import setup, find_packages
 
-NAME = 'eui-tools'
+# NAME = 'eui-tools'
 DESCRIPTION = 'EUI utilities',
 URL = ''
 EMAIL = 'frederic.auchere@universite-paris-saclay.fr'
@@ -18,7 +18,7 @@ VERSION = '0.0.1'
 
 entry_points = {
     'console_scripts': [
-        'wow=eui-tools.cli:main',
+        'wows=eui_tools.cli:main',
         ]
     }
 
@@ -29,7 +29,7 @@ with open('requirements.txt', 'r') as f:
     requirements = f.read().strip('\n').split('\n')
 
 setup(
-    name=NAME,
+    # name=NAME,
     version=VERSION,
     description=DESCRIPTION,
     long_description=long_description,
@@ -51,5 +51,5 @@ setup(
     packages=find_packages(),
     zip_safe=False,
     ext_modules=None,
-    entry_points=entry_points,
+    entry_points=entry_points
 )
