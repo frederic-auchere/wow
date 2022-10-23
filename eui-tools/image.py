@@ -2,7 +2,8 @@ import os
 import cv2
 import numpy as np
 from astropy.io import fits
-from rectify.rectify import EuclidianTransform, HomographicTransform, Rectifier, rotationmatrix
+from watroo import utils
+from rectify.rectify import HomographicTransform, Rectifier, rotationmatrix
 
 
 def read(filename):
@@ -12,27 +13,29 @@ def read(filename):
             image = np.float32(hdul[-1].data)
             header = hdul[-1].header
         if 'eui-fsi' in filename:
-            if '_L2_' in filename:
-                image *= header['XPOSURE']
-            if '304' in filename:
+            if '_L1_' in header['FILENAME']:
+                image /= header['XPOSURE']
+            if header['WAVELNTH'] == 304:
                 dn_per_photon = 3.8803
             else:
                 dn_per_photon = 7.3776
             gain = dn_per_photon
             read_noise = 1.5
         elif 'eui-hrieuv' in filename:
-            if '_L2_' in filename:
-                image *= header['XPOSURE']
+            if '_L1_' in filename:
+                image /= header['XPOSURE']
             dn_per_photon = 5.2764
             gain = dn_per_photon
             read_noise = 1.5
         elif 'aia' in filename:
+            image /= header['EXPTIME']
             electron_per_dn = 17.7
             electron_per_photon = 13.6 * 911.0 / (3.65 * 171)
             dn_per_photon = electron_per_photon / electron_per_dn
             gain = dn_per_photon
             read_noise = 1.15
         elif 'lasco' in filename:
+            image /= header['EXPTIME']
             electron_per_photon = 1
             electron_per_dn = 15
             dn_per_photon = electron_per_photon / electron_per_dn
@@ -89,11 +92,11 @@ class Image:
     @property
     def noise(self):
         if self._noise is None:
-            image = np.copy(self.data)
+            image = self.data*self.header['XPOSURE']
             image[image < 0] = 0
             self._noise = np.sqrt(self.header['GAIN'] * image + self.header['RDNOISE'] ** 2)
             self._noise[self._noise <= 0] = 1
-        return self._noise
+        return self._noise/self.header['XPOSURE']
 
     def read(self):
         filename = self.filename
@@ -111,18 +114,6 @@ class Image:
         self.header['CRPIX1'] -= self.roi[1].start
         self.header['CRPIX2'] -= self.roi[0].start
         self.data = self.data[self.roi]
-
-    def register(self, x0=0, y0=0, order=3, opencv=False):
-
-        if self.reference:
-            x0, y0 = self.reference.header["CRVAL1"] / self.reference.header["CDELT1"],\
-                     self.reference.header["CRVAL2"] / self.reference.header["CDELT2"]
-        x, y = self.header["CRVAL1"] / self.header["CDELT1"], self.header["CRVAL2"] / self.header["CDELT2"]
-        euclidian = EuclidianTransform(x - x0, y - y0, 0, 1, direction='inverse')
-        rectifier = Rectifier(euclidian)
-
-        self._data = rectifier(self.data, self.data.shape,
-                               (0, self.data.shape[1] - 1), (0, self.data.shape[0] - 1), order=order, opencv=opencv)
 
     def geometric_rectification(self, target=None, north_up=True, center=True, order=2, opencv=True):
 
@@ -172,8 +163,30 @@ class Image:
             self.header['PC2_2'] = 1
             self.header['CROTA'] = 0
 
+    def enhance(self, kwargs):
+        gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
+        gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
 
-class Cube:
+        if gamma_min is None:
+            gamma_min = np.min(self.data)
+        if gamma_max is None:
+            gamma_max = np.max(self.data)
+
+        self.data, _ = utils.wow(self.data,
+                                 denoise_coefficients=kwargs['denoise'],
+                                 noise=self.noise,
+                                 n_scales=kwargs['n_scales'],
+                                 bilateral=None if kwargs['no_bilateral'] else 1,
+                                 whitening=not kwargs['no_whitening'],
+                                 gamma=kwargs['gamma'],
+                                 h=kwargs['gamma_weight'],
+                                 gamma_min=gamma_min,
+                                 gamma_max=gamma_max)
+
+        return gamma_min, gamma_max
+
+
+class ImageCube(Image):
     def __init__(self, filenames, roi=None):
         self.filenames = filenames
         self._data = None
