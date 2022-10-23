@@ -10,15 +10,16 @@ def draw_clock(date, ax, size=0.05):
     hours = 2*np.pi*(h + m/60 + s/3600)/12
     minutes = 2*np.pi*(m/60 + s/3600)
 
+    scale = ax.figure.get_size_inches()[1]*ax.figure.dpi/2048
+
     ax = ax.inset_axes([0, 0, size, size], projection='polar')
-    hours_hand, = ax.plot((0, hours), (0, 0.5), color='white')
+    hours_hand, = ax.plot((0, hours), (0, 0.5), color='white', linewidth=scale)
     hours_hand.set_solid_capstyle('round')
-    minutes_hand, = ax.plot((0, minutes), (0, 1), color='white')
+    minutes_hand, = ax.plot((0, minutes), (0, 1), color='white', linewidth=scale)
     minutes_hand.set_solid_capstyle('round')
-    ax.scatter(np.linspace(0, 2*np.pi, 12, endpoint=False), np.ones(12), color='white', s=1)
+    ax.scatter(np.linspace(0, 2*np.pi, 12, endpoint=False), np.ones(12), color='white', s=scale**2, linewidths=scale)
 
     for sp in ax.spines.values():
-        sp.set_color('white')
         sp.set_visible(False)
     ax.set_theta_zero_location('N')
     ax.set_theta_direction(-1)
