@@ -15,6 +15,7 @@ from generic import make_directory
 from sunpy.visualization.colormaps import cm
 from multiprocessing import Pool, cpu_count
 import matplotlib as mp
+from astropy.io import fits
 
 mp.use('Agg')
 
@@ -37,12 +38,14 @@ parser.add_argument("-np", "--n_procs", help="Number of processors to use", defa
 parser.add_argument("-ck", "--clock", help="Inset clock", action='store_true')
 parser.add_argument("-fn", "--first_n", help="Process only the first N frames", type=int)
 parser.add_argument("-i", "--interval", help="Percentile to use for scaling", default=99.9, type=float)
+parser.add_argument("-ex", "--exposure", help="Minimum exposure time", type=float)
 
 
 def make_frame(image, title=None, norm=None, clock=None):
     dpi = 300
-    fig_size = [s/dpi for s in image.shape[::-1]]
+    fig_size = [s/dpi for s in image.data.shape[::-1]]
     fig, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
+    mp.rc('font', size=12*dpi*fig_size[1]/2048)
 
     if norm is None:
         norm = ImageNormalize(image, interval=PercentileInterval(99.9), stretch=LinearStretch())
@@ -55,26 +58,10 @@ def make_frame(image, title=None, norm=None, clock=None):
 
 def process_single_file(kwargs):
     source = kwargs['source']
-    gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
-    gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
     xy = kwargs['xy'] if 'xy' in kwargs else None
     image = Image(source, roi=kwargs['roi'])
 
-    if gamma_min is None:
-        gamma_min = np.min(image)
-    if gamma_max is None:
-        gamma_max = np.max(image)
-
-    image.data, _ = utils.wow(image.data,
-                              denoise_coefficients=kwargs['denoise'],
-                              noise=image.noise,
-                              n_scales=kwargs['n_scales'],
-                              bilateral=None if kwargs['no_bilateral'] else 1,
-                              whitening=not kwargs['no_whitening'],
-                              gamma=kwargs['gamma'],
-                              h=kwargs['gamma_weight'],
-                              gamma_min=gamma_min,
-                              gamma_max=gamma_max)
+    gamma_min, gamma_max = image.enhance(kwargs)
 
     if kwargs['register']:
         is_fsi = 'FSI' in image.header['TELESCOP'] if 'TELESCOP' in image.header else False
@@ -112,6 +99,8 @@ def process(source, **kwargs):
         if len(files) == 0:
             print('No files found')
             return
+        if 'exposure' in kwargs:
+            files = [f for f in files if fits.getheader(f, 1)['XPOSURE'] > kwargs['exposure']]
         files.sort()
         dxy = ((0, 0),) * len(files)
     if 'first_n' in kwargs:
