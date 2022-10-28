@@ -269,41 +269,42 @@ class Sequence:
         os.unlink(writer.name)
 
     @staticmethod
-    def make_frame(image, title=None, norm=None, clock=None):
-        dpi = 300
-        fig_size = [s / dpi for s in image.data.shape[::-1]]
-        fig, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
-        mp.rc('font', size=12 * dpi * fig_size[1] / 2048)
+    def process_single_frame(kwargs):
 
-        if norm is None:
-            norm = ImageNormalize(image, interval=PercentileInterval(99.9), stretch=LinearStretch())
-        cmap = plt.get_cmap('solar orbiterhri_euv174')
-        make_subplot(image, ax, norm, cmap=cmap, title=title, clock=clock)
-        fig.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
+        @staticmethod
+        def make_frame(image, title=None, norm=None, clock=None):
+            dpi = 300
+            fig_size = [s / dpi for s in image.data.shape[::-1]]
+            fig, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
+            mp.rc('font', size=12 * dpi * fig_size[1] / 2048)
 
-        return fig, ax
+            if norm is None:
+                norm = ImageNormalize(image, interval=PercentileInterval(99.9), stretch=LinearStretch())
+            cmap = plt.get_cmap('solar orbiterhri_euv174')
+            make_subplot(image, ax, norm, cmap=cmap, title=title, clock=clock)
+            fig.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
 
-    @staticmethod
-    def process_single_frame(self, index):
-        source = self.kwargs['source']
-        xy = self.xy
-        image = self.frames[index]
+            return fig, ax
 
-        self.gamma_min, self.gamma_max = image.enhance(self.kwargs)
+        source = kwargs['source']
+        xy = kwargs['xy'] if 'xy' in kwargs else None
+        image = Image(source, roi=kwargs['roi'])
 
-        if self.kwargs['register']:
+        gamma_min, gamma_max = image.enhance(kwargs)
+
+        if kwargs['register']:
             is_fsi = 'FSI' in image.header['TELESCOP'] if 'TELESCOP' in image.header else False
             image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
 
-        clock = image.header['DATE-OBS'] if 'clock' in self.kwargs else None
-        if 'norm' in self.kwargs:
-            norm = self.kwargs['norm']
+        clock = image.header['DATE-OBS'] if 'clock' in kwargs else None
+        if 'norm' in kwargs:
+            norm = kwargs['norm']
         else:
-            norm = ImageNormalize(image.data, interval=PercentileInterval(self.kwargs['interval']), stretch=LinearStretch())
-        fig, ax = self.make_frame(image.data, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock)
-        self.norm = ax.get_images()[0].norm
+            norm = ImageNormalize(image.data, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
+        fig, ax = make_frame(image.data, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock)
+        norm = ax.get_images()[0].norm
 
-        output_directory = make_directory(self.kwargs['output_directory'])
+        output_directory = make_directory(kwargs['output_directory'])
         out_file = os.path.join(output_directory, os.path.basename(source + '.png'))
 
         try:
@@ -312,6 +313,5 @@ class Sequence:
         except IOError:
             raise IOError
 
-        self.xy = image.header["CRVAL1"], image.header["CRVAL2"]
-
-        return out_file
+        xy = image.header["CRVAL1"], image.header["CRVAL2"]
+        return norm, gamma_min, gamma_max, xy, out_file
