@@ -3,7 +3,6 @@ from wow import main
 
 
 def main():
-    print('MERDE')
     parser = argparse.ArgumentParser()
     parser.add_argument("source", help="List of files", type=str)
     parser.add_argument("-o", "--output_directory", help="Output directory", default=None, type=str)
