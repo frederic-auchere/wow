@@ -8,7 +8,7 @@ mp.use('Agg')
 
 parser = argparse.ArgumentParser()
 parser.add_argument("source", help="List of files", type=str)
-parser.add_argument("-o", "--output_directory", help="Output directory", default=None, type=str)
+parser.add_argument("-o", "--output_directory", help="Output directory", default='.', type=str)
 parser.add_argument("-d", "--denoise", help="Denoising coefficients", default=[], type=float, nargs='+')
 parser.add_argument("-nb", "--no_bilateral", help="Do not use edge-aware (bilateral) transform", action='store_true')
 parser.add_argument("-ns", "--n_scales", help="Number of wavelet scales", default=None, type=int)
