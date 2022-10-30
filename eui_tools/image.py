@@ -7,13 +7,12 @@ from rectify.rectify import HomographicTransform, Rectifier, rotationmatrix
 from astropy.visualization import ImageNormalize, PercentileInterval, LinearStretch
 import matplotlib.pyplot as plt
 import matplotlib as mp
-from generic import make_directory
-from plotting import make_subplot
 from multiprocessing import Pool, cpu_count
 from tempfile import NamedTemporaryFile
 from tqdm import tqdm
 import subprocess
-from itertools import repeat
+from .generic import make_directory
+from .plotting import make_subplot
 from sunpy.visualization.colormaps import cm
 
 
@@ -261,8 +260,6 @@ class Sequence:
         if 'data' in kwargs:
             if kwargs['data'] is not None:
                 image.data = kwargs['data']
-                print("toto")
-                print(np.min(image.data), np.max(image.data))
 
         if kwargs['enhance']:
             gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
@@ -313,14 +310,14 @@ class Sequence:
             if self.kwargs['register']:
                 f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
             noise[:, :, i] = f.noise
-        cube, _ = utils.wow(cube,
-                            denoise_coefficients=self.kwargs['denoise'],
-                            noise=noise,
-                            n_scales=self.kwargs['n_scales'],
-                            bilateral=None if self.kwargs['no_bilateral'] else 1,
-                            whitening=not self.kwargs['no_whitening'],
-                            gamma=self.kwargs['gamma'],
-                            h=self.kwargs['gamma_weight'],
-                            gamma_min=gamma_min,
-                            gamma_max=gamma_max)
+        cube[:], _ = utils.wow(cube,
+                               denoise_coefficients=self.kwargs['denoise'],
+                               noise=noise,
+                               n_scales=self.kwargs['n_scales'],
+                               bilateral=None if self.kwargs['no_bilateral'] else 1,
+                               whitening=not self.kwargs['no_whitening'],
+                               gamma=self.kwargs['gamma'],
+                               h=self.kwargs['gamma_weight'],
+                               gamma_min=gamma_min,
+                               gamma_max=gamma_max)
         return cube

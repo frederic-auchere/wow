@@ -1,14 +1,8 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-#
-#  Documentation
-#  https://packaging.python.org/tutorials/packaging-projects/
-#
-# To install: "python setup.py install"
+# To install: pip install .
 
 from setuptools import setup, find_packages
 
-# NAME = 'eui-tools'
+NAME = 'eui_tools'
 DESCRIPTION = 'EUI utilities',
 URL = ''
 EMAIL = 'frederic.auchere@universite-paris-saclay.fr'
@@ -18,7 +12,7 @@ VERSION = '0.0.1'
 
 entry_points = {
     'console_scripts': [
-        'wows=eui_tools.cli:main',
+        'wow=eui_tools.cli:main',
         ]
     }
 
@@ -29,7 +23,7 @@ with open('requirements.txt', 'r') as f:
     requirements = f.read().strip('\n').split('\n')
 
 setup(
-    # name=NAME,
+    name=NAME,
     version=VERSION,
     description=DESCRIPTION,
     long_description=long_description,

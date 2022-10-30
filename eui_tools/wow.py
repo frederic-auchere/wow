@@ -1,7 +1,8 @@
 import argparse
 import os
 import glob
-from image import Sequence
+from .image import Sequence
+from astropy.io import fits
 import matplotlib as mp
 
 mp.use('Agg')
@@ -36,6 +37,8 @@ def main(**kwargs):
         print('No files found')
         return
     files.sort()
+    if 'exposure' in kwargs:
+        files = [f for f in files if fits.getheader(f, 1)['XPOSURE'] > kwargs['exposure']]
     if 'first_n' in kwargs:
         files = files[0:kwargs['first_n']]
     seq = Sequence(files, **kwargs)
