@@ -19,7 +19,7 @@ def main():
     parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to video", action='store_true')
     parser.add_argument("-fps", "--frame-rate", help="Number of frames per second", default=12, type=float)
     parser.add_argument("-np", "--n_procs", help="Number of processors to use", default=0, type=int)
-    parser.add_argument("-ck", "--clock", help="Inset clock", action='store_true')
+    parser.add_argument("-nc", "--no-clock", help="Inset clock", action='store_true')
     parser.add_argument("-fn", "--first_n", help="Process only the first N frames", type=int)
     parser.add_argument("-i", "--interval", help="Percentile to use for scaling", default=99.9, type=float)
 

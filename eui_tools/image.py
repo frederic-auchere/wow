@@ -12,9 +12,9 @@ from plotting import make_subplot
 from multiprocessing import Pool, cpu_count
 from tempfile import NamedTemporaryFile
 from tqdm import tqdm
-import glob
 import subprocess
 from itertools import repeat
+from sunpy.visualization.colormaps import cm
 
 
 def read(source):
@@ -164,7 +164,7 @@ class Image:
         xfov = 0, self.data.shape[1]-1
         yfov = 0, self.data.shape[0]-1
 
-        self.data = rectifier(self.data, self.data.shape, xfov, yfov, order=order, opencv=opencv)
+        self.data[:] = rectifier(self.data, self.data.shape, xfov, yfov, order=order, opencv=opencv)
 
         if center:
             self.header['CRVAL1'] = 0
@@ -176,87 +176,58 @@ class Image:
             self.header['PC2_2'] = 1
             self.header['CROTA'] = 0
 
-    def enhance(self, kwargs):
-        gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
-        gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
-
-        if gamma_min is None:
-            gamma_min = np.min(self.data)
-        if gamma_max is None:
-            gamma_max = np.max(self.data)
-
-        self.data, _ = utils.wow(self.data,
-                                 denoise_coefficients=kwargs['denoise'],
-                                 noise=self.noise,
-                                 n_scales=kwargs['n_scales'],
-                                 bilateral=None if kwargs['no_bilateral'] else 1,
-                                 whitening=not kwargs['no_whitening'],
-                                 gamma=kwargs['gamma'],
-                                 h=kwargs['gamma_weight'],
-                                 gamma_min=gamma_min,
-                                 gamma_max=gamma_max)
-
-        return gamma_min, gamma_max
-
-
-class ImageCube(Image):
-    def __init__(self, source, roi=None, check=False):
-        super().__init__(source, roi=roi)
-        self.frames = [Image(s, roi=self.roi) for s in source]
-        if check:
-            if not self._is_consistent:
-                print('Inconsistent headers')
-                return
-
-    @property
-    def noise(self):
-        if self._noise is None:
-            self._noise = np.empty_like(self.data)
-            for f, n in zip(self.frames, self._noise):
-                n[:] = f.noise
-        return self._noise
-
-    def read(self):
-        self._data = np.empty((len(self.frames), self.frames[0].header['NAXIS2'], self.frames[0].header['NAXIS1']))
-        for f, a in zip(self.frames, self._data):
-            f.read(array=a)
-
-    def geometric_rectification(self, north_up=True, center=True, delta_alpha=0, delta_beta=0, order=2, opencv=True):
-        for image in self.images:
-            pass
-
 
 class Sequence:
     def __init__(self, files, **kwargs):
         self.frames = [Image(f, roi=kwargs['roi']) for f in files]
         self.kwargs = kwargs
         self.output_directory = make_directory(self.kwargs['output_directory'])
-        self.norm = None
-        self.gamma_min = None
-        self.gamma_max = None
-        self.xy = None
 
     @property
     def _is_consistent(self, keys=['NAXIS1', 'NAXIS2']):
         return all(all(f.header[k] == self.frames[0].header[k] for k in keys) for f in self.frames[1:])
 
     def process(self):
+        def from_header(frame):
+            is_fsi = 'FSI' in frame.header['TELESCOP'] if 'TELESCOP' in frame.header else False
+            return {
+                    'is_fsi': is_fsi,
+                    }
+
         fps = self.kwargs["frame_rate"]
         writer = NamedTemporaryFile(delete=False)
-        if not self.kwargs['temporal']:
-            self.process_single_frame(self, 0)
-            pool_args = zip(repeat(self), range(len(self.frames)))
-            with Pool(cpu_count() if self.kwargs['n_procs'] == 0 else self.kwargs['n_procs']) as pool:
-                res = list(tqdm(pool.imap(self.process_single_frame, pool_args),
-                                desc='Processing',
-                                total=len(self.frames)))
-            for file_name in res:
-                line = "file '" + os.path.abspath(file_name) + "'\n"
-                writer.write(line.encode())
-                line = f"duration {1 / fps:.2f}\n"
-                writer.write(line.encode())
+        gamma_min, gamma_max = self.frames[0].data.min(), self.frames[0].data.max()
+        if self.kwargs['temporal']:
+            cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
+            norm = ImageNormalize(cube, interval=PercentileInterval(self.kwargs['interval']), stretch=LinearStretch())
+            xy = None
+        else:
+            xy = self.frames[0].header["CRVAL1"], self.frames[0].header["CRVAL2"]
+            norm, _ = self.process_single_frame({**self.kwargs,
+                                                 **{'source': self.frames[0].source,
+                                                    'enhance': True},
+                                                 **from_header(self.frames[0])}
+            )
+        pool_args = [{**self.kwargs,
+                      **{'source': f.source,
+                         'gamma_min': gamma_min,
+                         'gamma_max': gamma_max,
+                         'data': np.copy(f.data) if self.kwargs['temporal'] else None,
+                         'norm': norm,
+                         'xy': xy,
+                         'register': self.kwargs['register'] and not self.kwargs['temporal'],
+                         'enhance': not self.kwargs['temporal']},
+                      **from_header(f)
+                      } for i, f in enumerate(self.frames)]
+        with Pool(cpu_count() if self.kwargs['n_procs'] == 0 else self.kwargs['n_procs']) as pool:
+            res = list(tqdm(pool.imap(self.process_single_frame, pool_args), desc='Processing', total=len(self.frames)))
+        for _, file_name in res:
+            line = "file '" + os.path.abspath(file_name) + "'\n"
+            writer.write(line.encode())
+            line = f"duration {1 / fps:.2f}\n"
+            writer.write(line.encode())
         writer.close()
-        if not self.kwargs['no_encode'] and len(self.files) > 1:
+        if not self.kwargs['no_encode'] and len(self.frames) > 1:
             subprocess.run(["ffmpeg",
                             "-f", "concat",
                             "-safe", "0",
@@ -271,10 +242,9 @@ class Sequence:
     @staticmethod
     def process_single_frame(kwargs):
 
-        @staticmethod
         def make_frame(image, title=None, norm=None, clock=None):
             dpi = 300
-            fig_size = [s / dpi for s in image.data.shape[::-1]]
+            fig_size = [s / dpi for s in image.shape[::-1]]
             fig, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
             mp.rc('font', size=12 * dpi * fig_size[1] / 2048)
 
@@ -287,16 +257,33 @@ class Sequence:
             return fig, ax
 
         source = kwargs['source']
-        xy = kwargs['xy'] if 'xy' in kwargs else None
         image = Image(source, roi=kwargs['roi'])
+        if 'data' in kwargs:
+            if kwargs['data'] is not None:
+                image.data = kwargs['data']
+                print("toto")
+                print(np.min(image.data), np.max(image.data))
 
-        gamma_min, gamma_max = image.enhance(kwargs)
+        if kwargs['enhance']:
+            gamma_min = kwargs['gamma_min'] if 'gamma_min' in kwargs else None
+            gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
+            image.data, _ = utils.wow(image.data,
+                                      denoise_coefficients=kwargs['denoise'],
+                                      noise=image.noise,
+                                      n_scales=kwargs['n_scales'],
+                                      bilateral=None if kwargs['no_bilateral'] else 1,
+                                      whitening=not kwargs['no_whitening'],
+                                      gamma=kwargs['gamma'],
+                                      h=kwargs['gamma_weight'],
+                                      gamma_min=gamma_min,
+                                      gamma_max=gamma_max)
 
         if kwargs['register']:
-            is_fsi = 'FSI' in image.header['TELESCOP'] if 'TELESCOP' in image.header else False
+            is_fsi = kwargs['is_fsi'] if 'is_fsi' in kwargs else False
+            xy = kwargs['xy'] if 'xy' in kwargs else None
             image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
 
-        clock = image.header['DATE-OBS'] if 'clock' in kwargs else None
+        clock = None if 'no-clock' in kwargs else image.header['DATE-OBS']
         if 'norm' in kwargs:
             norm = kwargs['norm']
         else:
@@ -304,8 +291,8 @@ class Sequence:
         fig, ax = make_frame(image.data, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock)
         norm = ax.get_images()[0].norm
 
-        output_directory = make_directory(kwargs['output_directory'])
-        out_file = os.path.join(output_directory, os.path.basename(source + '.png'))
+        output_directory = kwargs['output_directory']
+        out_file = os.path.join(output_directory, os.path.basename(image.source + '.png'))
 
         try:
             fig.savefig(out_file)
@@ -313,5 +300,27 @@ class Sequence:
         except IOError:
             raise IOError
 
-        xy = image.header["CRVAL1"], image.header["CRVAL2"]
-        return norm, gamma_min, gamma_max, xy, out_file
+        return norm, out_file
+
+    def prep_cube(self, gamma_min=None, gamma_max=None):
+        for i, f in tqdm(enumerate(self.frames), desc='Reading files', total=len(self.frames)):
+            if i == 0:
+                cube = np.empty(shape=(f.data.shape + (len(self.frames),)))
+                noise = np.empty(shape=(f.data.shape + (len(self.frames),)))
+                xy = f.header["CRVAL1"], f.header["CRVAL2"]
+                is_fsi = 'FSI' in f.header['TELESCOP'] if 'TELESCOP' in f.header else False
+            f.read(array=cube[:, :, i])
+            if self.kwargs['register']:
+                f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
+            noise[:, :, i] = f.noise
+        cube, _ = utils.wow(cube,
+                            denoise_coefficients=self.kwargs['denoise'],
+                            noise=noise,
+                            n_scales=self.kwargs['n_scales'],
+                            bilateral=None if self.kwargs['no_bilateral'] else 1,
+                            whitening=not self.kwargs['no_whitening'],
+                            gamma=self.kwargs['gamma'],
+                            h=self.kwargs['gamma_weight'],
+                            gamma_min=gamma_min,
+                            gamma_max=gamma_max)
+        return cube
