@@ -5,6 +5,7 @@ from astropy.io import fits
 from watroo import utils
 from rectify.rectify import HomographicTransform, Rectifier, rotationmatrix
 from astropy.visualization import ImageNormalize, PercentileInterval, LinearStretch
+from astropy.time import Time
 import matplotlib.pyplot as plt
 import matplotlib as mp
 from multiprocessing import Pool, cpu_count
@@ -76,6 +77,7 @@ class Image:
         self.reference = None
         self.output_directory = None
         self.out_file = None
+        self.cmap = None
 
     def __array__(self):
         return self.data
@@ -181,9 +183,26 @@ class Sequence:
         self.frames = [Image(f, roi=kwargs['roi']) for f in files]
         self.kwargs = kwargs
         self.output_directory = make_directory(self.kwargs['output_directory'])
+        if kwargs['register']:
+            self.tracking()
+
+    def tracking(self, order=2):
+        crval1 = [f.header['CRVAL1'] for f in self.frames]
+        crval2 = [f.header['CRVAL2'] for f in self.frames]
+        date = [f.header['DATE-OBS'] for f in self.frames]
+
+        time = Time(date).mjd
+
+        polynomial = np.polynomial.Polynomial
+        crval1_fit = polynomial.fit(time, crval1, order)
+        crval2_fit = polynomial.fit(time, crval2, order)
+
+        for f, t in zip(self.frames, time):
+            f.header['CRVAL1'] = crval1_fit(t)
+            f.header['CRVAL2'] = crval2_fit(t)
 
     @property
-    def _is_consistent(self, keys=['NAXIS1', 'NAXIS2']):
+    def _is_consistent(self, keys=('NAXIS1', 'NAXIS2')):
         return all(all(f.header[k] == self.frames[0].header[k] for k in keys) for f in self.frames[1:])
 
     def process(self):
@@ -199,25 +218,22 @@ class Sequence:
         if self.kwargs['temporal']:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
             norm = ImageNormalize(cube, interval=PercentileInterval(self.kwargs['interval']), stretch=LinearStretch())
-            xy = None
         else:
-            xy = self.frames[0].header["CRVAL1"], self.frames[0].header["CRVAL2"]
             norm, _ = self.process_single_frame({**self.kwargs,
                                                  **{'source': self.frames[0].source,
                                                     'enhance': True},
                                                  **from_header(self.frames[0])}
-            )
+                                                )
         pool_args = [{**self.kwargs,
                       **{'source': f.source,
                          'gamma_min': gamma_min,
                          'gamma_max': gamma_max,
                          'data': np.copy(f.data) if self.kwargs['temporal'] else None,
                          'norm': norm,
-                         'xy': xy,
                          'register': self.kwargs['register'] and not self.kwargs['temporal'],
                          'enhance': not self.kwargs['temporal']},
                       **from_header(f)
-                      } for i, f in enumerate(self.frames)]
+                      } for f in self.frames]
         with Pool(cpu_count() if self.kwargs['n_procs'] == 0 else self.kwargs['n_procs']) as pool:
             res = list(tqdm(pool.imap(self.process_single_frame, pool_args), desc='Processing', total=len(self.frames)))
         for _, file_name in res:
@@ -277,8 +293,7 @@ class Sequence:
 
         if kwargs['register']:
             is_fsi = kwargs['is_fsi'] if 'is_fsi' in kwargs else False
-            xy = kwargs['xy'] if 'xy' in kwargs else None
-            image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
+            image.geometric_rectification(north_up=is_fsi, center=is_fsi)
 
         clock = None if 'no-clock' in kwargs else image.header['DATE-OBS']
         if 'norm' in kwargs:
@@ -304,11 +319,10 @@ class Sequence:
             if i == 0:
                 cube = np.empty(shape=(f.data.shape + (len(self.frames),)))
                 noise = np.empty(shape=(f.data.shape + (len(self.frames),)))
-                xy = f.header["CRVAL1"], f.header["CRVAL2"]
                 is_fsi = 'FSI' in f.header['TELESCOP'] if 'TELESCOP' in f.header else False
             f.read(array=cube[:, :, i])
             if self.kwargs['register']:
-                f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
+                f.geometric_rectification(north_up=is_fsi, center=is_fsi)
             noise[:, :, i] = f.noise
         cube[:], _ = utils.wow(cube,
                                denoise_coefficients=self.kwargs['denoise'],
