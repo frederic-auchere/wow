@@ -119,8 +119,8 @@ class Image:
         if self._data is None:
             if self.roi is None:
                 self.roi = slice(0, image.shape[1]), slice(0, image.shape[0])
-        self.header['CRPIX1'] -= self.roi[1].start
-        self.header['CRPIX2'] -= self.roi[0].start
+        header['CRPIX1'] -= self.roi[1].start
+        header['CRPIX2'] -= self.roi[0].start
         image = image[self.roi]
         if array is None:
             array = image
@@ -183,8 +183,7 @@ class Sequence:
         self.frames = [Image(f, roi=kwargs['roi']) for f in files]
         self.kwargs = kwargs
         self.output_directory = make_directory(self.kwargs['output_directory'])
-        if kwargs['register']:
-            self.tracking()
+        self.xy = self.tracking() if kwargs['register'] else (None,)*len(self.frames)
 
     def tracking(self, order=2):
         crval1 = [f.header['CRVAL1'] for f in self.frames]
@@ -197,9 +196,7 @@ class Sequence:
         crval1_fit = polynomial.fit(time, crval1, order)
         crval2_fit = polynomial.fit(time, crval2, order)
 
-        for f, t in zip(self.frames, time):
-            f.header['CRVAL1'] = crval1_fit(t)
-            f.header['CRVAL2'] = crval2_fit(t)
+        return [(crval1_fit(t), crval2_fit(t)) for t in time]
 
     @property
     def _is_consistent(self, keys=('NAXIS1', 'NAXIS2')):
@@ -229,11 +226,12 @@ class Sequence:
                          'gamma_min': gamma_min,
                          'gamma_max': gamma_max,
                          'data': np.copy(f.data) if self.kwargs['temporal'] else None,
+                         'xy': xy,
                          'norm': norm,
                          'register': self.kwargs['register'] and not self.kwargs['temporal'],
                          'enhance': not self.kwargs['temporal']},
                       **from_header(f)
-                      } for f in self.frames]
+                      } for f, xy in zip(self.frames, self.xy)]
         with Pool(cpu_count() if self.kwargs['n_procs'] == 0 else self.kwargs['n_procs']) as pool:
             res = list(tqdm(pool.imap(self.process_single_frame, pool_args), desc='Processing', total=len(self.frames)))
         for _, file_name in res:
@@ -293,7 +291,8 @@ class Sequence:
 
         if kwargs['register']:
             is_fsi = kwargs['is_fsi'] if 'is_fsi' in kwargs else False
-            image.geometric_rectification(north_up=is_fsi, center=is_fsi)
+            xy = kwargs['xy'] if 'xy' in kwargs else None
+            image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
 
         clock = None if 'no-clock' in kwargs else image.header['DATE-OBS']
         if 'norm' in kwargs:
@@ -315,15 +314,16 @@ class Sequence:
         return norm, out_file
 
     def prep_cube(self, gamma_min=None, gamma_max=None):
-        for i, f in tqdm(enumerate(self.frames), desc='Reading files', total=len(self.frames)):
+        for i, (f, xy) in tqdm(enumerate(zip(self.frames, self.xy)), desc='Reading files', total=len(self.frames)):
             if i == 0:
-                cube = np.empty(shape=(f.data.shape + (len(self.frames),)))
-                noise = np.empty(shape=(f.data.shape + (len(self.frames),)))
+                cube = np.empty(shape=((len(self.frames),) + f.data.shape))
+                noise = np.empty(shape=((len(self.frames),) + f.data.shape))
                 is_fsi = 'FSI' in f.header['TELESCOP'] if 'TELESCOP' in f.header else False
-            f.read(array=cube[:, :, i])
+
+            f.read(array=cube[i])
             if self.kwargs['register']:
-                f.geometric_rectification(north_up=is_fsi, center=is_fsi)
-            noise[:, :, i] = f.noise
+                f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
+            noise[i] = f.noise
         cube[:], _ = utils.wow(cube,
                                denoise_coefficients=self.kwargs['denoise'],
                                noise=noise,
