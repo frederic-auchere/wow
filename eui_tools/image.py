@@ -39,14 +39,16 @@ def read(source):
             gain = dn_per_photon
             read_noise = 1.5
         elif 'aia' in source:
-            image /= header['EXPTIME']
+            header['XPOSURE'] = header['EXPTIME']
+            image /= header['XPOSURE']
             electron_per_dn = 17.7
             electron_per_photon = 13.6 * 911.0 / (3.65 * 171)
             dn_per_photon = electron_per_photon / electron_per_dn
             gain = dn_per_photon
             read_noise = 1.15
         elif 'lasco' in source:
-            image /= header['EXPTIME']
+            header['XPOSURE'] = header['EXPTIME']
+            image /= header['XPOSURE']
             electron_per_photon = 1
             electron_per_dn = 15
             dn_per_photon = electron_per_photon / electron_per_dn
