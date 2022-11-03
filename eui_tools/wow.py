@@ -16,7 +16,7 @@ def main(**kwargs):
         print('No files found')
         return
     files.sort()
-    if 'exposure' in kwargs:
+    if kwargs['exposure'] is not None:
         files = [f for f in files if fits.getheader(f, 1)['XPOSURE'] > kwargs['exposure']]
     if 'first_n' in kwargs:
         files = files[0:kwargs['first_n']]
