@@ -337,7 +337,10 @@ class Sequence:
             norm = kwargs['norm']
         else:
             norm = ImageNormalize(image.data, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
-        fig, ax = make_frame(image.data, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock, cmap=image.cmap)
+        label = image.header['DATE-OBS'][:-4]
+        if kwargs['gamma_weight'] < 1:
+            label += ' WOW-enhanced'
+        fig, ax = make_frame(image.data, title=label, norm=norm, clock=clock, cmap=image.cmap)
         norm = ax.get_images()[0].norm
 
         output_directory = kwargs['output_directory']

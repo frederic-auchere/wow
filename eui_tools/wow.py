@@ -9,16 +9,20 @@ mp.use('Agg')
 
 def main(**kwargs):
     source = kwargs['source']
-    if os.path.isdir(source):
-        source = os.path.join(kwargs['source'], '*.fits')
-    files = glob.glob(source)
+    if type(source) is not list:
+        source = [source]
+    files = []
+    for s in source:
+        if os.path.isfile(s):
+            files.append(s)
+        else:
+            if os.path.isdir(s):
+                s = os.path.join(s, '*.fits')
+            files.append(glob.glob(s))
     if len(files) == 0:
         print('No files found')
         return
     files.sort()
-    if 'exposure' in kwargs:
-        if kwargs['exposure'] is not None:
-            files = [f for f in files if fits.getheader(f, 1)['XPOSURE'] > kwargs['exposure']]
     if 'first_n' in kwargs:
         files = files[0:kwargs['first_n']]
     seq = Sequence(files, **kwargs)
