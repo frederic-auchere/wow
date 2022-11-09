@@ -67,6 +67,20 @@ def read(source):
 
 
 class Image:
+
+    cmaps = {'Unknwon': 'gray',
+             'hrieuv': 'solar orbiterhri_euv174',
+             'fsi174': 'solar orbiterfsi174',
+             'fsi304': 'solar orbiterfsi304',
+             'aia94': 'sdoaia94',
+             'aia131': 'sdoaia131',
+             'aia171': 'sdoaia171',
+             'aia193': 'sdoaia193',
+             'aia1211': 'sdoaia211',
+             'aia304': 'sdoaia304',
+             'aia335': 'sdoaia335'
+             }
+
     def __init__(self, source, roi=None):
         self.source = source
         self._data = None
@@ -79,10 +93,33 @@ class Image:
         self.reference = None
         self.output_directory = None
         self.out_file = None
-        self.cmap = None
+        self._instrument = None
+        self._cmap = None
 
     def __array__(self):
         return self.data
+
+    @property
+    def instrument(self):
+        if self._instrument is None:
+            if 'TELESCOP' in self.header:
+                if self.header['TELESCOP'] == 'SOLO/EUI/HRI_EUV':
+                    self._instrument = 'hrieuv'
+                elif self.header['TELESCOP'] == 'SOLO/EUI/FSI':
+                    self._instrument = 'fsi' + str(self.header['WAVELNTH'])
+                elif self.header['TELESCOP'] == 'SDO/AIA':
+                    self._instrument = 'aia' + str(self.header['WAVELNTH'])
+                else:
+                    self._instrument = None
+            else:
+                self._instrument = None
+        return self._instrument
+
+    @property
+    def cmap(self):
+        if self._cmap is None:
+            self._cmap = plt.get_cmap(self.cmaps[self.instrument])
+        return self._cmap
 
     @property
     def data(self):
@@ -185,7 +222,7 @@ class Sequence:
         self.frames = [Image(f, roi=kwargs['roi']) for f in files]
         self.kwargs = kwargs
         self.output_directory = make_directory(self.kwargs['output_directory'])
-        self.xy = self.tracking() if kwargs['register'] else (None,)*len(self.frames)
+        self.xy = self.tracking(order=kwargs['register']) if kwargs['register'] > 0 else (None,)*len(self.frames)
 
     def tracking(self, order=2):
         crval1 = [f.header['CRVAL1'] for f in self.frames]
@@ -230,7 +267,7 @@ class Sequence:
                          'data': np.copy(f.data) if self.kwargs['temporal'] else None,
                          'xy': xy,
                          'norm': norm,
-                         'register': self.kwargs['register'] and not self.kwargs['temporal'],
+                         'register': self.kwargs['register'] > 0 and not self.kwargs['temporal'],
                          'enhance': not self.kwargs['temporal']},
                       **from_header(f)
                       } for f, xy in zip(self.frames, self.xy)]
@@ -257,7 +294,7 @@ class Sequence:
     @staticmethod
     def process_single_frame(kwargs):
 
-        def make_frame(image, title=None, norm=None, clock=None):
+        def make_frame(image, title=None, norm=None, clock=None, cmap='gray'):
             dpi = 300
             fig_size = [s / dpi for s in image.shape[::-1]]
             fig, ax = plt.subplots(1, 1, figsize=fig_size, dpi=dpi)
@@ -265,7 +302,6 @@ class Sequence:
 
             if norm is None:
                 norm = ImageNormalize(image, interval=PercentileInterval(99.9), stretch=LinearStretch())
-            cmap = plt.get_cmap('solar orbiterhri_euv174')
             make_subplot(image, ax, norm, cmap=cmap, title=title, clock=clock)
             fig.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
 
@@ -291,7 +327,7 @@ class Sequence:
                                       gamma_min=gamma_min,
                                       gamma_max=gamma_max)
 
-        if kwargs['register']:
+        if kwargs['register'] > 0:
             is_fsi = kwargs['is_fsi'] if 'is_fsi' in kwargs else False
             xy = kwargs['xy'] if 'xy' in kwargs else None
             image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
@@ -301,7 +337,7 @@ class Sequence:
             norm = kwargs['norm']
         else:
             norm = ImageNormalize(image.data, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
-        fig, ax = make_frame(image.data, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock)
+        fig, ax = make_frame(image.data, title=image.header['DATE-OBS'][:-4], norm=norm, clock=clock, cmap=image.cmap)
         norm = ax.get_images()[0].norm
 
         output_directory = kwargs['output_directory']
@@ -323,7 +359,7 @@ class Sequence:
                 is_fsi = 'FSI' in f.header['TELESCOP'] if 'TELESCOP' in f.header else False
 
             f.read(array=cube[i])
-            if self.kwargs['register']:
+            if self.kwargs['register'] > 0:
                 f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
             noise[i] = f.noise
         cube[:], _ = utils.wow(cube,

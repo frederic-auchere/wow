@@ -1,5 +1,7 @@
 import argparse
 from .wow import main
+from eui_selektor_client import EUISelektorClient, EUISelektorFormViewer
+from eui_selektor_client.cli import parse_query_args
 
 
 def cli():
@@ -15,7 +17,7 @@ def cli():
     parser.add_argument("-nw", "--no_whitening", help="Do not apply whitening (WOW!)", action='store_true')
     parser.add_argument("-t", "--temporal", help="Applies temporal denoising and/or whitening", action='store_true')
     parser.add_argument("-roi", help="Region of interest [bottom left, top right corners]", type=int, nargs=4)
-    parser.add_argument("-r", "--register", help="Uses header information to register the frames", action='store_true')
+    parser.add_argument("-r", "--register", help="Uses header information to register the frames", type=int, default=2)
     parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to video", action='store_true')
     parser.add_argument("-fps", "--frame-rate", help="Number of frames per second", default=12, type=float)
     parser.add_argument("-np", "--n_procs", help="Number of processors to use", default=0, type=int)
@@ -23,6 +25,13 @@ def cli():
     parser.add_argument("-fn", "--first_n", help="Process only the first N frames", type=int)
     parser.add_argument("-i", "--interval", help="Percentile to use for scaling", default=99.9, type=float)
     parser.add_argument("-ex", "--exposure", help="Minimum exposure time", type=float)
+    parser.add_argument("--selektor", help="Selektor query for list of EUI observations", nargs="+", default=False)
     args = parser.parse_args()
+
+    if args.selektor:
+        client = EUISelektorClient()
+        query = parse_query_args(args.selektor)
+        res = client.search_nolimit(query)
+        files = res['filepath']
 
     main(**vars(args))
