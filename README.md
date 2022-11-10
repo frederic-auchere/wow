@@ -1,5 +1,6 @@
 # WOW!
 Wavelets Enhanced Whitening
+___
 
 ## Installation
 
@@ -59,6 +60,8 @@ The `wow` executable can be called from the command line to produce movies from 
 | date_begin_end_hour     | 0-23                                                                      | DATE-BEG      |
 | date_begin_end_minute   | 0-59                                                                      | DATE-BEG      |
 
+Note that the DATE-BEG FITS keyword indicates the beginning of an exposure. The *start* and *end* suffixes are added to *date_begin* to form the *date_begin_start* and *date_begin_end* parameters, which can be confusing. 
+
 When passed the `-- selektor [query]` option, the `wow` executable uses Selektor's filtering capability to obtain, *e.g.* a list of FSI 174 image between two given dates, while excluding too short exposure times. Note that `eui_selektor_client` queries the EUI archive but **does not** download the data itself. It is up to the user to make sure that the data is available in a directory tree organized by `YYYY/MM/DD`. An environment variable named `EUI_ARCHIVE_DATA_PATH` must point at the root of the data tree. For example, the file `solo_L2_eui-hrieuv174-image_20220317T032000234_V01.fits` must be located in the `EUI_ARCHIVE_DATA_PATH/L2/2022/03/17` directory:
 
 ```shell
@@ -70,14 +73,18 @@ EUI_ARCHIVE_DATA_PATH
 │  │  │  │  ├─ solo_L2_eui-hrieuv174-image_20220317T032000234_V01.fits
 ```
 
-##
-# Examples
+### Examples
 
-Queries selektor to create a movie of FSI 304 images from 2022-10-01 to 2022-10-30, excluding exposures shorter than 1 second:
+Queries selektor to create a video file in the movie directory from all the FSI 304 images from 2022-10-01 to 2022-10-30, excluding exposures shorter than 1 second (note that `2022-10-30` means `2022-10-30T00:00:00`):
 ```shell
 wow --selektor detector[]:FSI wavelnth[]:304 date_begin_start:2022-10-01 date_begin_end:2022-10-30 image_size_min:3072 xposure_min:1 -o movie
+```
+Use the HRI_EUV data from 2022-10-19T00:00:00 to 2022-10-19T19:00:00, excluding exposures shorter than 1 second:
+
+```shell
+wow --selektor detector[]:HRI_EUV date_begin_start:2022-10-19 date_begin_end:2022-10-19 date_begin_end_hour:19 xposure_min:1 -o movie
 ```
 
 # References
 
-Auchère, F., Soubrié, E., Pelouze, G., Buchlin, É. 2022, Image Enhancement With Wavelets Optimized Whitening, submitted to A&A
+Auchère, F., Soubrié, E., Pelouze, G. and Buchlin, É. 2022, *Image Enhancement With Wavelets Optimized Whitening*, submitted to A&A

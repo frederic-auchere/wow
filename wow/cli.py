@@ -31,7 +31,7 @@ def cli():
     parser.add_argument("-nw", "--no_whitening", help="Do not apply whitening (WOW!)", action='store_true')
     parser.add_argument("-t", "--temporal", help="Applies temporal de-noising and/or whitening", action='store_true')
     parser.add_argument("-roi", help="Region of interest [bottom left, top right corners]", type=int, nargs=4)
-    parser.add_argument("-r", "--register", help="Uses header information to register the frames", type=int, default=2)
+    parser.add_argument("-r", "--register", help="Uses header information to register the frames", type=int, default=1)
     parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to video", action='store_true')
     parser.add_argument("-fps", "--frame-rate", help="Number of frames per second", default=12, type=float)
     parser.add_argument("-np", "--n_procs", help="Number of processors to use", default=0, type=int)
@@ -54,7 +54,7 @@ def cli():
             n_local_files = len(local_files)
             if n_local_files != n_selektor_files:
                 print(f'{n_selektor_files - n_local_files} files found by Selektor not found locally')
-            if len(args.source) == 0:
+            if n_local_files == 0:
                 print('No files found locally')
                 sys.exit(1)
             args.source = local_files
