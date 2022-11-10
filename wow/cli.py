@@ -11,20 +11,25 @@ def eui_file2path(file, archive_path=''):
 
 
 def cli():
+    """
+    Command line interface to the wow movie processor
+    wow --help
+    :return:
+    """
     parser = argparse.ArgumentParser(prog="WOW!", description="Process sequence of files with Wavelets Optimized "
                                                               "Whitening and encodes the frames to video.")
     source_group = parser.add_mutually_exclusive_group()
     source_group.add_argument("--source", help="List of files, directories or glob patterns", type=str)
     source_group.add_argument("--selektor", help="Queries Selektor for EUI observations", type=str, nargs="+")
     parser.add_argument("-o", "--output_directory", help="Output directory", default='.', type=str)
-    parser.add_argument("-d", "--denoise", help="Denoising coefficients", default=[], type=float, nargs='+')
+    parser.add_argument("-d", "--denoise", help="De-noising coefficients", default=[], type=float, nargs='+')
     parser.add_argument("-nb", "--no_bilateral", help="Do not use edge-aware (bilateral) transform",
                         action='store_true')
     parser.add_argument("-ns", "--n_scales", help="Number of wavelet scales", default=None, type=int)
     parser.add_argument("-gw", "--gamma_weight", help="Weight of gamma-stretched image", default=0, type=float)
     parser.add_argument("-g", "--gamma", help="Gamma exponent", default=2, type=float)
     parser.add_argument("-nw", "--no_whitening", help="Do not apply whitening (WOW!)", action='store_true')
-    parser.add_argument("-t", "--temporal", help="Applies temporal denoising and/or whitening", action='store_true')
+    parser.add_argument("-t", "--temporal", help="Applies temporal de-noising and/or whitening", action='store_true')
     parser.add_argument("-roi", help="Region of interest [bottom left, top right corners]", type=int, nargs=4)
     parser.add_argument("-r", "--register", help="Uses header information to register the frames", type=int, default=2)
     parser.add_argument("-ne", "--no_encode", help="Do not encode the frames to video", action='store_true')
@@ -43,10 +48,16 @@ def cli():
             archive_path = os.getenv('EUI_ARCHIVE_DATA_PATH')
             if archive_path == '':
                 print('Warning: undefined EUI_ARCHIVE_DATA_PATH')
-            files = [eui_file2path(os.path.basename(f), archive_path) for f in res['filepath']]
-            args.source = [f for f in files if os.path.exists(f)]
+            selektor_files = [eui_file2path(os.path.basename(f), archive_path) for f in res['filepath']]
+            n_selektor_files = len(selektor_files)
+            local_files = [f for f in selektor_files if os.path.exists(f)]
+            n_local_files = len(local_files)
+            if n_local_files != n_selektor_files:
+                print(f'{n_selektor_files - n_local_files} files found by Selektor not found locally')
             if len(args.source) == 0:
+                print('No files found locally')
                 sys.exit(1)
+            args.source = local_files
         else:
             sys.exit(1)
 

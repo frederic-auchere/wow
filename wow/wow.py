@@ -1,7 +1,6 @@
 import os
 import glob
 from .image import Sequence
-from astropy.io import fits
 import matplotlib as mp
 
 mp.use('Agg')
