@@ -33,9 +33,22 @@ The installation process will create a `wow` executable that can be run from the
 
 ## Usage
 
+### In a Python program
+
+The simplest use
+````python
+from wow import wow
+
+wow_image = wow(image)
+bilateral_wow_image = wow(image, bilateral=1)
+denoised_bilateral_wow_image = wow(image, denoise_coefficients=[5, 1], bilateral=1)
+````
+
+### The wow executable
+
 The `wow` executable can be called from the command line to produce movies from a sequence of files, directories or glob patterns.
 
-### Using Selektor queries
+#### Using Selektor queries
 
 [`eui_selektor_client`](https://github.com/gpelouze/eui_selektor_client) is a lightweight client to the [EUI Selektor](https://www.sidc.be/EUI/data_internal/selektor) tool (password protected). The query passed as value to the `--selektor` argument must be of the form `--selektor parameter1:value1 parameter2:value2`. The most useful query parameters and possible values are summarized below. Note that some parameters do require the [ ] brackets, e.g. `detector[]:FSI`
 
@@ -73,15 +86,16 @@ EUI_ARCHIVE_DATA_PATH
 │  │  │  │  ├─ solo_L2_eui-hrieuv174-image_20220317T032000234_V01.fits
 ```
 
-### Examples
+#### Examples
 
 Queries selektor to create a video file in the movie directory from all the FSI 304 images from 2022-10-01 to 2022-10-30, excluding exposures shorter than 1 second (note that `2022-10-30` means `2022-10-30T00:00:00`):
-```shell
+
+```commandline
 wow --selektor detector[]:FSI wavelnth[]:304 date_begin_start:2022-10-01 date_begin_end:2022-10-30 image_size_min:3072 xposure_min:1 -o movie
 ```
 Use the HRI_EUV data from 2022-10-19T00:00:00 to 2022-10-19T19:00:00, excluding exposures shorter than 1 second:
 
-```shell
+```commandline
 wow --selektor detector[]:HRI_EUV date_begin_start:2022-10-19 date_begin_end:2022-10-19 date_begin_end_hour:19 xposure_min:1 -o movie
 ```
 
