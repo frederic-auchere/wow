@@ -4,20 +4,13 @@ ___
 
 ## Installation
 
-After cloning this repository, it is recommended to install this package and its dependencies in a fresh virtual environment, *e.g.* with
-
-```shell
-python -m venv wow/.venv
-```
-followed by `. .venv\bin\activate`(Unix) or `.venv\Scripts\activate` (Windows). 
-
-The following packages must be installed from their respective GitHub repositories: 
+Prior to installing WOW, the following packages must be installed from their respective GitHub repositories: 
 
  * [eui_selektor_client](https://github.com/gpelouze/eui_selektor_client) (lightweight client for the EUI Selektor)
  * [watroo](https://github.com/frederic-auchere/wavelets) (à trous wavelets transforms)
  * [rectify](https://github.com/frederic-auchere/rectify) (geometric remapping)
 
-Then:
+Then, after cloning the present repository:
 
 ```shell
 pip install .
