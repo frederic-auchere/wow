@@ -33,20 +33,48 @@ The installation process will create a `wow` executable that can be run from the
 
 ## Usage
 
+The package provides two ways of processing images with the WOW! algorithm:
+* The `wow` function that can be used in Python programs
+* The `wow` executable that can be run from the command line
+
 ### In a Python program
 
-The simplest use
-````python
+An example is given in the `example.py` file. In essence:
+```python
+from astropy.io import fits
 from wow import wow
 
+sample_file = r'sample_data\solo_L2_eui-hrieuv174-image_20220317T032000234_V01.fits'
+image = fits.getdata(sample_file)
+
+# Basic WOW, non-bilateral, non de-noised. Fast.
 wow_image = wow(image)
-bilateral_wow_image = wow(image, bilateral=1)
-denoised_bilateral_wow_image = wow(image, denoise_coefficients=[5, 1], bilateral=1)
-````
+# Edge-aware, slower
+bilateral_wow_image = wow(image, bilateral=1) 
+# Same with de-noising
+denoised_bilateral_wow_image = wow(image, denoise_coefficients=[5, 1], bilateral=1)  
+```
 
 ### The wow executable
 
-The `wow` executable can be called from the command line to produce movies from a sequence of files, directories or glob patterns.
+The `wow` executable can be called from the command line to produce movies from a sequence of files, directories or glob patterns. Help on the available parameters can be obtained with
+
+```shell
+wow --help
+```
+
+#### Movie from images in a directory
+
+All images in the my/directory folder
+```shell
+wow --source my/directory -o movie
+```
+Only some files
+```shell
+wow --source my/directory/*20221002*.fits -o movie
+```
+
+
 
 #### Using Selektor queries
 
@@ -90,12 +118,12 @@ EUI_ARCHIVE_DATA_PATH
 
 Queries selektor to create a video file in the movie directory from all the FSI 304 images from 2022-10-01 to 2022-10-30, excluding exposures shorter than 1 second (note that `2022-10-30` means `2022-10-30T00:00:00`):
 
-```commandline
+```shell
 wow --selektor detector[]:FSI wavelnth[]:304 date_begin_start:2022-10-01 date_begin_end:2022-10-30 image_size_min:3072 xposure_min:1 -o movie
 ```
 Use the HRI_EUV data from 2022-10-19T00:00:00 to 2022-10-19T19:00:00, excluding exposures shorter than 1 second:
 
-```commandline
+```shell
 wow --selektor detector[]:HRI_EUV date_begin_start:2022-10-19 date_begin_end:2022-10-19 date_begin_end_hour:19 xposure_min:1 -o movie
 ```
 
