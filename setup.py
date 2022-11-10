@@ -12,7 +12,7 @@ VERSION = '0.0.1'
 
 entry_points = {
     'console_scripts': [
-        'wow=eui_tools.cli:cli',
+        'wow=wow.cli:cli',
         ]
     }
 
