@@ -1,4 +1,5 @@
-# WOW
+# WOW!
+Wavelets Enhanced Whitening
 
 ## Installation
 
@@ -76,3 +77,7 @@ Queries selektor to create a movie of FSI 304 images from 2022-10-01 to 2022-10-
 ```shell
 wow --selektor detector[]:FSI wavelnth[]:304 date_begin_start:2022-10-01 date_begin_end:2022-10-30 image_size_min:3072 xposure_min:1 -o movie
 ```
+
+# References
+
+Auchère, F., Soubrié, E., Pelouze, G., Buchlin, É. 2022, Image Enhancement With Wavelets Optimized Whitening, submitted to A&A
