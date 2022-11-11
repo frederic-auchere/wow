@@ -267,7 +267,7 @@ class Sequence:
                          'data': np.copy(f.data) if self.kwargs['temporal'] else None,
                          'xy': xy,
                          'norm': norm,
-                         'register': self.kwargs['register'] > 0 and not self.kwargs['temporal'],
+                         'register': self.kwargs['register'] >= 0 and not self.kwargs['temporal'],
                          'enhance': not self.kwargs['temporal']},
                       **from_header(f)
                       } for f, xy in zip(self.frames, self.xy)]
@@ -327,9 +327,9 @@ class Sequence:
                                       gamma_min=gamma_min,
                                       gamma_max=gamma_max)
 
-        if kwargs['register'] > 0:
+        if kwargs['register']:
             is_fsi = kwargs['is_fsi'] if 'is_fsi' in kwargs else False
-            xy = kwargs['xy'] if 'xy' in kwargs else None
+            xy = kwargs['xy'] if 'xy' in kwargs else None  # and not is_fsi else None
             image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
 
         clock = None if 'no-clock' in kwargs else image.header['DATE-OBS']
@@ -362,7 +362,7 @@ class Sequence:
                 is_fsi = 'FSI' in f.header['TELESCOP'] if 'TELESCOP' in f.header else False
 
             f.read(array=cube[i])
-            if self.kwargs['register'] > 0:
+            if self.kwargs['register'] >= 0:
                 f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
             noise[i] = f.noise
         cube[:], _ = utils.wow(cube,

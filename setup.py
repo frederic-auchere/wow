@@ -2,9 +2,8 @@
 
 from setuptools import setup, find_packages
 
-NAME = 'eui_tools'
+NAME = 'wow'
 DESCRIPTION = 'EUI utilities',
-URL = ''
 EMAIL = 'frederic.auchere@universite-paris-saclay.fr'
 AUTHOR = 'Frédéric Auchère'
 REQUIRES_PYTHON = '>=3.6.0'
@@ -31,7 +30,7 @@ setup(
     author=AUTHOR,
     author_email=EMAIL,
     python_requires=REQUIRES_PYTHON,
-    url=URL,
+    url='https://github.com/frederic-auchere/wow',
     install_requires=requirements,
     license='LGPL-v3',
     classifiers=[
