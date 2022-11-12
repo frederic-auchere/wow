@@ -90,9 +90,6 @@ class Image:
             self.roi = slice(roi[1], roi[3]), slice(roi[0], roi[2])
         else:
             self.roi = None
-        self.reference = None
-        self.output_directory = None
-        self.out_file = None
         self._instrument = None
         self._cmap = None
 
@@ -221,7 +218,9 @@ class Sequence:
     def __init__(self, files, **kwargs):
         self.frames = [Image(f, roi=kwargs['roi']) for f in files]
         self.kwargs = kwargs
-        self.output_directory = make_directory(self.kwargs['output_directory'])
+        output_directory, output_file = os.path.split(self.kwargs['output']) if 'output' in self.kwargs else ('', '')
+        self.output_directory = make_directory(output_directory)
+        self.output_file = 'wow.mp4' if output_file == '' else output_file
         self.xy = self.tracking(order=kwargs['register']) if kwargs['register'] > 0 else (None,)*len(self.frames)
 
     def tracking(self, order=2):
@@ -288,7 +287,7 @@ class Sequence:
                             "-pix_fmt", "yuv420p",
                             "-crf", "22",
                             "-r", f"{fps}",
-                            "-y", os.path.join(self.output_directory, 'wow.mp4')])
+                            "-y", os.path.join(self.output_directory, self.output_file)])
         os.unlink(writer.name)
 
     @staticmethod

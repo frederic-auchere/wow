@@ -26,9 +26,8 @@ def cli():
     source_group.add_argument("--selektor",
                               metavar="Selektor query",
                               help="Queries Selektor for EUI observations", type=str, nargs="+")
-    parser.add_argument("-o", "--output_directory",
-                        help="Output directory",
-                        default='.',
+    parser.add_argument("-o", "--output",
+                        help="Output filename. Frames are saved in its base directory.",
                         type=str)
     parser.add_argument("-d", "--denoise",
                         help="De-noising coefficients",
