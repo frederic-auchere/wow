@@ -17,7 +17,7 @@ def main(**kwargs):
         else:
             if os.path.isdir(s):
                 s = os.path.join(s, '*.fits')
-            files.append(glob.glob(s))
+            files.extend(glob.glob(s))
     if len(files) == 0:
         print('No files found')
         return

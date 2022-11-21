@@ -21,8 +21,11 @@ def read(source):
     ext = os.path.splitext(source)[1]
     if ext == '.fit' or ext == '.fits' or ext == '.fts':
         with fits.open(source) as hdul:
-            image = np.float32(hdul[-1].data)
-            header = hdul[-1].header
+            for hdu in hdul:
+                if hdu.data is not None:
+                    image = np.float32(hdu.data)
+                    header = hdu.header
+                    break
         if 'eui-fsi' in source:
             if '_L1_' in header['FILENAME']:
                 image /= header['XPOSURE']
@@ -54,7 +57,14 @@ def read(source):
             dn_per_photon = electron_per_photon / electron_per_dn
             gain = dn_per_photon
             read_noise = 0.3
+        elif 'metis' in source:
+            image /= header['XPOSURE']
+            read_noise = None
+            gain = None
+            dn_per_photon = 1
         else:
+            read_noise = None
+            gain = None
             dn_per_photon = 1
         image /= dn_per_photon
     else:
@@ -78,7 +88,8 @@ class Image:
              'aia193': 'sdoaia193',
              'aia1211': 'sdoaia211',
              'aia304': 'sdoaia304',
-             'aia335': 'sdoaia335'
+             'aia335': 'sdoaia335',
+             'metis': 'gray'
              }
 
     def __init__(self, source, roi=None):
@@ -106,6 +117,8 @@ class Image:
                     self._instrument = 'fsi' + str(self.header['WAVELNTH'])
                 elif self.header['TELESCOP'] == 'SDO/AIA':
                     self._instrument = 'aia' + str(self.header['WAVELNTH'])
+                elif 'Metis' in self.header['TELESCOP']:
+                    self._instrument = 'metis'
                 else:
                     self._instrument = None
             else:
@@ -132,7 +145,10 @@ class Image:
     def header(self):
         if self._header is None:
             with fits.open(self.source) as hdul:
-                self._header = hdul[-1].header
+                for hdu in hdul:
+                    if hdu.data is not None:
+                        self._header = hdu.header
+                        break
         return self._header
 
     @header.setter
@@ -141,7 +157,10 @@ class Image:
 
     @property
     def noise(self):
-        if self._noise is None:
+        if self._noise is None\
+         and self.header['GAIN'] is not None\
+         and self.header['RDNOISE'] is not None\
+         and 'XPOSURE' in self.header:
             image = self.data*self.header['XPOSURE']
             image[image < 0] = 0
             self._noise = np.sqrt(self.header['GAIN'] * image + self.header['RDNOISE'] ** 2)/self.header['XPOSURE']
@@ -218,10 +237,11 @@ class Sequence:
     def __init__(self, files, **kwargs):
         self.frames = [Image(f, roi=kwargs['roi']) for f in files]
         self.kwargs = kwargs
-        output_directory, output_file = os.path.split(self.kwargs['output']) if 'output' in self.kwargs else ('', '')
+        output_directory, output_file = os.path.split(self.kwargs['output']) if self.kwargs['output'] is not None else ('', '')
         self.output_directory = make_directory(output_directory)
+        kwargs['output_directory'] = self.output_directory
         self.output_file = 'wow.mp4' if output_file == '' else output_file
-        self.xy = self.tracking(order=kwargs['register']) if kwargs['register'] > 0 else (None,)*len(self.frames)
+        self.xy = self.tracking(order=kwargs['register']) if kwargs['register'] >= 0 else (None,)*len(self.frames)
 
     def tracking(self, order=2):
         crval1 = [f.header['CRVAL1'] for f in self.frames]
@@ -250,6 +270,7 @@ class Sequence:
         fps = self.kwargs["frame_rate"]
         writer = NamedTemporaryFile(delete=False)
         gamma_min, gamma_max = self.frames[0].data.min(), self.frames[0].data.max()
+
         if self.kwargs['temporal']:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
             norm = ImageNormalize(cube, interval=PercentileInterval(self.kwargs['interval']), stretch=LinearStretch())
@@ -356,8 +377,8 @@ class Sequence:
     def prep_cube(self, gamma_min=None, gamma_max=None):
         for i, (f, xy) in tqdm(enumerate(zip(self.frames, self.xy)), desc='Reading files', total=len(self.frames)):
             if i == 0:
-                cube = np.empty(shape=((len(self.frames),) + f.data.shape))
-                noise = np.empty(shape=((len(self.frames),) + f.data.shape))
+                cube = np.empty(shape=((len(self.frames),) + f.data.shape), dtype=np.float32)
+                noise = np.empty(shape=((len(self.frames),) + f.data.shape), dtype=np.float32)
                 is_fsi = 'FSI' in f.header['TELESCOP'] if 'TELESCOP' in f.header else False
 
             f.read(array=cube[i])

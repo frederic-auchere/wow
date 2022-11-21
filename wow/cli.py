@@ -46,8 +46,8 @@ def cli():
                         default=0,
                         type=float)
     parser.add_argument("-g", "--gamma",
-                        help="Gamma exponent",
-                        default=2,type=float)
+                        help="Gamma expo nent",
+                        default=2, type=float)
     parser.add_argument("-nw", "--no_whitening", help="Do not apply whitening (WOW!)",
                         action='store_true')
     parser.add_argument("-t", "--temporal",
@@ -70,7 +70,7 @@ def cli():
                         type=float)
     parser.add_argument("-np", "--n_procs",
                         help="Number of processors to use",
-                        default=0,type=int)
+                        default=0, type=int)
     parser.add_argument("-nc", "--no-clock",
                         help="Do not inset clock",
                         action='store_true')
