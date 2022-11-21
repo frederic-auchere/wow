@@ -3,7 +3,7 @@
 from setuptools import setup, find_packages
 
 NAME = 'wow'
-DESCRIPTION = 'EUI utilities',
+DESCRIPTION = 'WOW!',
 EMAIL = 'frederic.auchere@universite-paris-saclay.fr'
 AUTHOR = 'Frédéric Auchère'
 REQUIRES_PYTHON = '>=3.6.0'
