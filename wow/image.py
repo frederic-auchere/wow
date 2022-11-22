@@ -237,7 +237,8 @@ class Sequence:
     def __init__(self, files, **kwargs):
         self.frames = [Image(f, roi=kwargs['roi']) for f in files]
         self.kwargs = kwargs
-        output_directory, output_file = os.path.split(self.kwargs['output']) if self.kwargs['output'] is not None else ('', '')
+        output_directory, output_file =\
+            os.path.split(self.kwargs['output']) if kwargs['output'] is not None else ('', '')
         self.output_directory = make_directory(output_directory)
         kwargs['output_directory'] = self.output_directory
         self.output_file = 'wow.mp4' if output_file == '' else output_file
@@ -273,6 +274,7 @@ class Sequence:
 
         if self.kwargs['temporal']:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
+            print(gamma_min, gamma_max, cube.min(), cube.max())
             norm = ImageNormalize(cube, interval=PercentileInterval(self.kwargs['interval']), stretch=LinearStretch())
         else:
             norm, _ = self.process_single_frame({**self.kwargs,
@@ -378,13 +380,19 @@ class Sequence:
         for i, (f, xy) in tqdm(enumerate(zip(self.frames, self.xy)), desc='Reading files', total=len(self.frames)):
             if i == 0:
                 cube = np.empty(shape=((len(self.frames),) + f.data.shape), dtype=np.float32)
-                noise = np.empty(shape=((len(self.frames),) + f.data.shape), dtype=np.float32)
+                if f.noise is not None:
+                    noise = np.empty(shape=((len(self.frames),) + f.data.shape), dtype=np.float32)
+                else:
+                    noise = None
                 is_fsi = 'FSI' in f.header['TELESCOP'] if 'TELESCOP' in f.header else False
 
             f.read(array=cube[i])
             if self.kwargs['register'] >= 0:
                 f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
-            noise[i] = f.noise
+
+            if f.noise is not None:
+                noise[i] = f.noise
+
         cube[:], _ = utils.wow(cube,
                                denoise_coefficients=self.kwargs['denoise'],
                                noise=noise,
