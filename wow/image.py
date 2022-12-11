@@ -4,7 +4,7 @@ import numpy as np
 from astropy.io import fits
 from watroo import utils
 from rectify.rectify import HomographicTransform, Rectifier, rotationmatrix
-from astropy.visualization import ImageNormalize, PercentileInterval, LinearStretch
+from astropy.visualization import ImageNormalize, LinearStretch, AsymmetricPercentileInterval
 from astropy.time import Time
 import matplotlib.pyplot as plt
 import matplotlib as mp
@@ -12,7 +12,7 @@ from multiprocessing import Pool, cpu_count
 from tempfile import NamedTemporaryFile
 from tqdm import tqdm
 import subprocess
-from .generic import make_directory
+from .generic import make_directory, rebin
 from .plotting import make_subplot
 from sunpy.visualization.colormaps import cm
 
@@ -270,15 +270,17 @@ class Sequence:
 
         fps = self.kwargs["frame_rate"]
         writer = NamedTemporaryFile(delete=False)
-        gamma_min, gamma_max = self.frames[0].data.min(), self.frames[0].data.max()
+        gamma_min, gamma_max = AsymmetricPercentileInterval(*self.kwargs['interval']).get_limits(self.frames[0].data)
 
         if self.kwargs['temporal']:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
-            print(gamma_min, gamma_max, cube.min(), cube.max())
-            norm = ImageNormalize(cube, interval=PercentileInterval(self.kwargs['interval']), stretch=LinearStretch())
+            norm = ImageNormalize(cube, interval=AsymmetricPercentileInterval(*self.kwargs['interval']), stretch=LinearStretch())
         else:
             norm, _ = self.process_single_frame({**self.kwargs,
                                                  **{'source': self.frames[0].source,
+                                                    'gamma_min': gamma_min,
+                                                    'gamma_max': gamma_max,
+                                                    'register': False,
                                                     'enhance': True},
                                                  **from_header(self.frames[0])}
                                                 )
@@ -323,7 +325,7 @@ class Sequence:
             mp.rc('font', size=12 * dpi * fig_size[1] / 2048)
 
             if norm is None:
-                norm = ImageNormalize(image, interval=PercentileInterval(99.9), stretch=LinearStretch())
+                norm = ImageNormalize(image, interval=AsymmetricPercentileInterval(0.1, 99.9), stretch=LinearStretch())
             make_subplot(image, ax, norm, cmap=cmap, title=title, clock=clock)
             fig.subplots_adjust(top=1, bottom=0, right=1, left=0, hspace=0, wspace=0)
 
@@ -358,12 +360,14 @@ class Sequence:
         if 'norm' in kwargs:
             norm = kwargs['norm']
         else:
-            norm = ImageNormalize(image.data, interval=PercentileInterval(kwargs['interval']), stretch=LinearStretch())
+            mini, maxi = AsymmetricPercentileInterval(*kwargs['interval']).get_limits(image.data)
+            norm = ImageNormalize(vmin=mini, vmax=maxi, stretch=LinearStretch())
         label = image.header['DATE-OBS'][:-4]
         if kwargs['gamma_weight'] < 1:
             label += ' WOW-enhanced'
+        if kwargs['rebin'] > 1:
+            image.data = rebin(image.data, [s // kwargs['rebin'] for s in image.data.shape])
         fig, ax = make_frame(image.data, title=label, norm=norm, clock=clock, cmap=image.cmap)
-        norm = ax.get_images()[0].norm
 
         output_directory = kwargs['output_directory']
         out_file = os.path.join(output_directory, os.path.basename(image.source + '.png'))

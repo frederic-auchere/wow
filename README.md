@@ -60,11 +60,11 @@ wow --help
 
 All images in the my/directory folder
 ```shell
-wow --source my/directory -o movie
+wow --source my/directory -o movie.mp4
 ```
 Only some files
 ```shell
-wow --source my/directory/*20221002*.fits -o movie
+wow --source my/directory/*20221002*.fits -o movie.mp4
 ```
 
 
@@ -112,14 +112,14 @@ EUI_ARCHIVE_DATA_PATH
 Queries selektor to create a video file in the movie directory from all the FSI 304 images from 2022-10-01 to 2022-10-30, excluding exposures shorter than 1 second (note that `2022-10-30` means `2022-10-30T00:00:00`):
 
 ```shell
-wow --selektor detector[]:FSI wavelnth[]:304 date_begin_start:2022-10-01 date_begin_end:2022-10-30 image_size_min:3072 xposure_min:1 -o movie
+wow --selektor detector[]:FSI wavelnth[]:304 date_begin_start:2022-10-01 date_begin_end:2022-10-30 image_size_min:3072 xposure_min:1 -o movie.mp4
 ```
 Use the HRI_EUV data from 2022-10-19T00:00:00 to 2022-10-19T19:00:00, excluding exposures shorter than 1 second:
 
 ```shell
-wow --selektor detector[]:HRI_EUV date_begin_start:2022-10-19 date_begin_end:2022-10-19 date_begin_end_hour:19 xposure_min:1 -o movie
+wow --selektor detector[]:HRI_EUV date_begin_start:2022-10-19 date_begin_end:2022-10-19 date_begin_end_hour:19 xposure_min:1 -o output/movie.mp4
 ```
 
 # References
 
-Auchère, F., Soubrié, E., Pelouze, G. and Buchlin, É. 2022, *Image Enhancement With Wavelets Optimized Whitening*, submitted to A&A
+Auchère, F., Soubrié, E., Pelouze, G. and Buchlin, É. 2022, *Image Enhancement With Wavelets Optimized Whitening*, A&A, in press

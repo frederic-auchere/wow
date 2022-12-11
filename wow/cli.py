@@ -79,8 +79,13 @@ def cli():
                         type=int)
     parser.add_argument("-i", "--interval",
                         help="Percentile to use for scaling",
-                        default=99.9,
+                        default=[0.1, 99.9],
+                        nargs=2,
                         type=float)
+    parser.add_argument("-rb", "--rebin",
+                        help="binning factor",
+                        default=1,
+                        type=int)
     args = parser.parse_args()
 
     if args.selektor:
@@ -89,7 +94,8 @@ def cli():
         res = client.search_nolimit(query)
         if res is not None:
             archive_path = os.getenv('EUI_ARCHIVE_DATA_PATH')
-            if archive_path == '':
+            if archive_path is None:
+                archive_path = ''
                 print('Warning: undefined EUI_ARCHIVE_DATA_PATH')
             selektor_files = [eui_file2path(os.path.basename(f), archive_path) for f in res['filepath']]
             n_selektor_files = len(selektor_files)
