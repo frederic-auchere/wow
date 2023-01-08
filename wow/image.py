@@ -192,16 +192,23 @@ class Image:
             else:
                 target = self.header['CRVAL1'], self.header['CRVAL2']
 
-        alpha = -(np.radians((self.header['CRVAL1'] - target[0])/3600))
-        beta = np.radians((self.header['CRVAL2'] - target[1])/3600)
+        alpha1 = -np.radians(self.header['CRVAL1']/3600)
+        beta1 = np.radians(self.header['CRVAL2']/3600)
+        alpha2 = np.radians(target[0]/3600)
+        beta2 = -np.radians(target[1]/3600)
 
-        gamma = -np.radians(self.header['CROTA']) if north_up else 0
+        # gamma = -np.radians(self.header['CROTA']) if north_up else 0
+        gamma1 = -np.radians(self.header['CROTA'])
+        gamma2 = -gamma1 if not north_up else 0
 
         # x, y in the plane of the sky, z towards the observer
         # yaw = around y, pitch = around x, roll = around z
-        Ry = rotationmatrix(alpha, 1)
-        Rx = rotationmatrix(beta, 2)
-        Rz = rotationmatrix(gamma, 0)
+        Ry1 = rotationmatrix(alpha1, 1)
+        Rx1 = rotationmatrix(beta1, 2)
+        Rz1 = rotationmatrix(gamma1, 0)
+        Ry2 = rotationmatrix(alpha2, 1)
+        Rx2 = rotationmatrix(beta2, 2)
+        Rz2 = rotationmatrix(gamma2, 0)
 
         # K & K^{-1}
         Km1 = np.array([[np.radians(self.header['CDELT1']/3600), 0, -(self.header['CRPIX1']-1)*np.radians(self.header['CDELT1']/3600)],
@@ -210,7 +217,7 @@ class Image:
         K = np.array([[1/np.radians(self.header['CDELT1']/3600), 0, self.header['CRPIX1']-1],
                       [0, 1/np.radians(self.header['CDELT2']/3600), self.header['CRPIX2']-1],
                       [0, 0, 1]])
-        KH = K @ Rz @ Rx @ Ry @ Km1
+        KH = K @ Rz1 @ Rx1 @ Ry1 @ Ry2 @ Rx2 @ Rz2 @ Km1
         KH /= KH[2, 2]
 
         transform = HomographicTransform(KH, dtype=np.float32)
@@ -231,6 +238,15 @@ class Image:
             self.header['PC2_1'] = 0
             self.header['PC2_2'] = 1
             self.header['CROTA'] = 0
+
+    def rebin(self, binning):
+        self.header['NAXIS1'] /= binning
+        self.header['NAXIS2'] /= binning
+        self.header['CDELT1'] *= binning
+        self.header['CDELT2'] *= binning
+        self.header['CRPIX1'] = (self.header['NAXIS1'] + 1) / 2
+        self.header['CRPIX2'] = (self.header['NAXIS2'] + 1) / 2
+        self.data = rebin(self.data, [s // binning for s in self.data.shape])
 
 
 class Sequence:
@@ -304,13 +320,14 @@ class Sequence:
             writer.write(line.encode())
         writer.close()
         if not self.kwargs['no_encode'] and len(self.frames) > 1:
+            crf = self.kwargs["crf"]
             subprocess.run(["ffmpeg",
                             "-f", "concat",
                             "-safe", "0",
                             "-i", writer.name,
                             "-vcodec", "libx264",
                             "-pix_fmt", "yuv420p",
-                            "-crf", "22",
+                            "-crf", f"{crf}",
                             "-r", f"{fps}",
                             "-y", os.path.join(self.output_directory, self.output_file)])
         os.unlink(writer.name)
@@ -366,14 +383,16 @@ class Sequence:
         if kwargs['gamma_weight'] < 1:
             label += ' WOW-enhanced'
         if kwargs['rebin'] > 1:
-            image.data = rebin(image.data, [s // kwargs['rebin'] for s in image.data.shape])
+            image.rebin(kwargs['rebin'])
         fig, ax = make_frame(image.data, title=label, norm=norm, clock=clock, cmap=image.cmap)
 
         output_directory = kwargs['output_directory']
-        out_file = os.path.join(output_directory, os.path.basename(image.source + '.png'))
+        out_file = os.path.join(output_directory, os.path.basename(image.source))
 
         try:
-            fig.savefig(out_file)
+            if kwargs['to_fits']:
+                fits.writeto(out_file + '.fits', image.data, header=image.header, overwrite=True)
+            fig.savefig(out_file + '.png')
             plt.close(fig)
         except IOError:
             raise IOError

@@ -46,7 +46,7 @@ def cli():
                         default=0,
                         type=float)
     parser.add_argument("-g", "--gamma",
-                        help="Gamma expo nent",
+                        help="Gamma exponent",
                         default=2, type=float)
     parser.add_argument("-nw", "--no_whitening", help="Do not apply whitening (WOW!)",
                         action='store_true')
@@ -68,6 +68,10 @@ def cli():
                         help="Number of frames per second",
                         default=12,
                         type=float)
+    parser.add_argument("-crf",
+                        help="FFmpeg crf quality parameter",
+                        default=22,
+                        type=int)
     parser.add_argument("-np", "--n_procs",
                         help="Number of processors to use",
                         default=0, type=int)
@@ -86,6 +90,10 @@ def cli():
                         help="binning factor",
                         default=1,
                         type=int)
+    parser.add_argument("-rtf", "--to_fits",
+                        help="Save to fits",
+                        default=False,
+                        type=bool)
     args = parser.parse_args()
 
     if args.selektor:
