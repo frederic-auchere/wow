@@ -92,8 +92,8 @@ def cli():
                         type=int)
     parser.add_argument("-tf", "--to_fits",
                         help="Save to fits",
-                        default=False,
-                        type=bool)
+                        action='store_true')
+
     args = parser.parse_args()
 
     if args.selektor:
