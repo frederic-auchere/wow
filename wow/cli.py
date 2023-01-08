@@ -90,7 +90,7 @@ def cli():
                         help="binning factor",
                         default=1,
                         type=int)
-    parser.add_argument("-rtf", "--to_fits",
+    parser.add_argument("-tf", "--to_fits",
                         help="Save to fits",
                         default=False,
                         type=bool)
