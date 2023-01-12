@@ -391,7 +391,7 @@ class Sequence:
 
         try:
             if kwargs['to_fits']:
-                fits.writeto(out_file + '.fits', image.data, header=image.header, overwrite=True)
+                fits.writeto(out_file, image.data, header=image.header, overwrite=True)
             out_file += '.png'
             fig.savefig(out_file)
             plt.close(fig)
