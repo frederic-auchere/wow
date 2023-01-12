@@ -391,6 +391,7 @@ class Sequence:
 
         try:
             if kwargs['to_fits']:
+                image.header['COMMENT'] = '--------- WOW parameters: ------------------------------------'
                 image.header['GAMMA'] = kwargs['gamma']
                 image.header['GAMMAW'] = kwargs['gamma_weight']
                 image.header['DENOISE'] = str(kwargs['denoise'])
