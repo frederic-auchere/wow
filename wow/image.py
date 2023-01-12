@@ -396,7 +396,7 @@ class Sequence:
                 # image.header['DENOISE'] = kwargs['denoise']
                 image.header['BILATERA'] = 'None' if kwargs['no_bilateral'] else 1
                 image.header['TEMPORAL'] = 'True' if kwargs['temporal'] else 'False'
-                # image.header['INTERVAL'] = kwargs['interval']
+                image.header['INTERVAL'] = kwargs['interval']
                 fits.writeto(out_file, image.data, header=image.header, overwrite=True)
             out_file += '.png'
             fig.savefig(out_file)
