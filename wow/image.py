@@ -58,7 +58,8 @@ def read(source):
             gain = dn_per_photon
             read_noise = 0.3
         elif 'metis' in source:
-            image /= header['XPOSURE']
+            if 'XPOSURE' in header:
+                image /= header['XPOSURE']
             read_noise = None
             gain = None
             dn_per_photon = 1
