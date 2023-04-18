@@ -17,9 +17,17 @@ from .plotting import make_subplot
 from sunpy.visualization.colormaps import cm
 
 
+def fsi_fix_shift(img):
+    a = np.median(img, axis=0)
+    if a[0] > 2 * np.mean(a[1:4]):
+        img[:, 0:-1] = img[:, 1:]
+        img[:, -1] = 0
+
+
 def read(source):
     ext = os.path.splitext(source)[1]
-    if ext == '.fit' or ext == '.fits' or ext == '.fts':
+    file = os.path.split(source)[1]
+    if ext == '.fit' or ext == '.fits' or ext == '.fts' or 'efz' in file:
         with fits.open(source) as hdul:
             for hdu in hdul:
                 if hdu.data is not None:
@@ -27,6 +35,7 @@ def read(source):
                     header = hdu.header
                     break
         if 'eui-fsi' in source:
+            fsi_fix_shift(image)
             if '_L1_' in header['FILENAME']:
                 image /= header['XPOSURE']
             if header['WAVELNTH'] == 304:
@@ -63,6 +72,13 @@ def read(source):
             read_noise = None
             gain = None
             dn_per_photon = 1
+        elif 'efz' in file:
+            if 'EXPTIME' in header:
+                image /= header['EXPTIME']
+            header['DATE-OBS'] = header['DATE_OBS']
+            read_noise = None
+            gain = None
+            dn_per_photon = 1
         else:
             read_noise = None
             gain = None
@@ -80,6 +96,10 @@ def read(source):
 class Image:
 
     cmaps = {'Unknwon': 'gray',
+             'eit171': 'sohoeit171',
+             'eit195': 'sohoeit195',
+             'eit284': 'sohoeit284',
+             'eit304': 'sohoeit304',
              'hrieuv': 'solar orbiterhri_euv174',
              'fsi174': 'solar orbiterfsi174',
              'fsi304': 'solar orbiterfsi304',
@@ -120,6 +140,11 @@ class Image:
                     self._instrument = 'aia' + str(self.header['WAVELNTH'])
                 elif 'Metis' in self.header['TELESCOP']:
                     self._instrument = 'metis'
+                elif self.header['TELESCOP'] == 'SOHO':
+                    if self.header['INSTRUME'] == 'EIT':
+                        self._instrument = 'eit' + str(self.header['WAVELNTH'])
+                    else:
+                        self._instrument = None
                 else:
                     self._instrument = None
             else:
@@ -374,7 +399,7 @@ class Sequence:
             xy = kwargs['xy'] if 'xy' in kwargs else None  # and not is_fsi else None
             image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
 
-        clock = None if 'no-clock' in kwargs else image.header['DATE-OBS']
+        clock = None if kwargs['no_clock'] else image.header['DATE-OBS']
         if 'norm' in kwargs:
             norm = kwargs['norm']
         else:

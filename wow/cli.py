@@ -58,7 +58,7 @@ def cli():
                         type=int,
                         nargs=4)
     parser.add_argument("-r", "--register",
-                        help="Uses header information to register the frames",
+                        help="Order of polynomial used to fit the header data to register the frames.",
                         type=int,
                         default=1)
     parser.add_argument("-ne", "--no_encode",
