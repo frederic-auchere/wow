@@ -101,6 +101,7 @@ class Image:
              'eit284': 'sohoeit284',
              'eit304': 'sohoeit304',
              'hrieuv': 'solar orbiterhri_euv174',
+             'hrilya': 'solar orbiterhri_lya1216',
              'fsi174': 'solar orbiterfsi174',
              'fsi304': 'solar orbiterfsi304',
              'aia94': 'sdoaia94',
@@ -134,6 +135,8 @@ class Image:
             if 'TELESCOP' in self.header:
                 if self.header['TELESCOP'] == 'SOLO/EUI/HRI_EUV':
                     self._instrument = 'hrieuv'
+                if self.header['TELESCOP'] == 'SOLO/EUI/HRI_LYA':
+                    self._instrument = 'hrilya'
                 elif self.header['TELESCOP'] == 'SOLO/EUI/FSI':
                     self._instrument = 'fsi' + str(self.header['WAVELNTH'])
                 elif self.header['TELESCOP'] == 'SDO/AIA':
