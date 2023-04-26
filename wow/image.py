@@ -135,7 +135,7 @@ class Image:
             if 'TELESCOP' in self.header:
                 if self.header['TELESCOP'] == 'SOLO/EUI/HRI_EUV':
                     self._instrument = 'hrieuv'
-                if self.header['TELESCOP'] == 'SOLO/EUI/HRI_LYA':
+                elif self.header['TELESCOP'] == 'SOLO/EUI/HRI_LYA':
                     self._instrument = 'hrilya'
                 elif self.header['TELESCOP'] == 'SOLO/EUI/FSI':
                     self._instrument = 'fsi' + str(self.header['WAVELNTH'])
