@@ -340,7 +340,7 @@ class Sequence:
                          'enhance': not self.kwargs['temporal']},
                       **from_header(f)
                       } for f, xy in zip(self.frames, self.xy)]
-        with Pool(cpu_count() if self.kwargs['n_procs'] == 0 else self.kwargs['n_procs']) as pool:
+        with Pool(max(1, cpu_count()-1) if self.kwargs['n_procs'] == 0 else self.kwargs['n_procs']) as pool:
             res = list(tqdm(pool.imap(self.process_single_frame, pool_args), desc='Processing', total=len(self.frames)))
         for _, file_name in res:
             line = "file '" + os.path.abspath(file_name) + "'\n"

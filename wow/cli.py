@@ -73,7 +73,7 @@ def cli():
                         default=22,
                         type=int)
     parser.add_argument("-np", "--n_procs",
-                        help="Number of processors to use",
+                        help="Number of processors to use. By default, uses 1 or the maximum available -1",
                         default=0, type=int)
     parser.add_argument("-nc", "--no-clock",
                         help="Do not inset clock",
