@@ -287,7 +287,10 @@ class Sequence:
         self.output_directory = make_directory(output_directory)
         kwargs['output_directory'] = self.output_directory
         self.output_file = 'wow.mp4' if output_file == '' else output_file
-        self.xy = self.tracking(order=kwargs['register']) if kwargs['register'] >= 0 else (None,)*len(self.frames)
+        if 0 <= kwargs['register'] < len(files):
+            self.xy = self.tracking(order=kwargs['register'])
+        else:
+            self.xy = (None,)*len(self.frames)
 
     def tracking(self, order=2):
         crval1 = [f.header['CRVAL1'] for f in self.frames]
