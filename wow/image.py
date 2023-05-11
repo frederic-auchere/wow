@@ -411,9 +411,12 @@ class Sequence:
         else:
             mini, maxi = AsymmetricPercentileInterval(*kwargs['interval']).get_limits(image.data)
             norm = ImageNormalize(vmin=mini, vmax=maxi, stretch=LinearStretch())
-        label = image.header['DATE-OBS'][:-4]
-        if kwargs['gamma_weight'] < 1:
-            label += ' WOW-enhanced'
+        if kwargs['no_label']:
+            label = None
+        else:
+            label = image.header['DATE-OBS'][:-4]
+            if kwargs['gamma_weight'] < 1:
+                label += ' WOW-enhanced'
         if kwargs['rebin'] > 1:
             image.rebin(kwargs['rebin'])
         fig, ax = make_frame(image.data, title=label, norm=norm, clock=clock, cmap=image.cmap)

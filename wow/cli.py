@@ -78,6 +78,9 @@ def cli():
     parser.add_argument("-nc", "--no-clock",
                         help="Do not inset clock",
                         action='store_true')
+    parser.add_argument("-nl", "--no-label",
+                        help="Do not inset time stamp & label ",
+                        action='store_true')
     parser.add_argument("-fn", "--first_n",
                         help="Process only the first N frames",
                         type=int)
