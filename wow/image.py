@@ -146,6 +146,8 @@ class Image:
                     self._instrument = 'aia' + str(self.header['WAVELNTH'])
                 elif 'Metis' in self.header['TELESCOP']:
                     self._instrument = 'metis'
+                elif self.header['TELESCOP'] == 'EIT':
+                    self._instrument = 'eit' + str(self.header['WAVELNTH'])
                 elif self.header['TELESCOP'] == 'SOHO':
                     if self.header['INSTRUME'] == 'EIT':
                         self._instrument = 'eit' + str(self.header['WAVELNTH'])
