@@ -72,10 +72,13 @@ def read(source):
             read_noise = None
             gain = None
             dn_per_photon = 1
-        elif 'efz' in file:
+        elif 'efz' in file or 'EIT' in file:
             if 'EXPTIME' in header:
                 image /= header['EXPTIME']
-            header['DATE-OBS'] = header['DATE_OBS']
+            elif 'EXPOSURE' in header:
+                image /= header['EXPOSURE']
+            if 'DATE_OBS' in header:
+                header['DATE-OBS'] = header['DATE_OBS']
             read_noise = None
             gain = None
             dn_per_photon = 1
