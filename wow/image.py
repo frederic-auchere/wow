@@ -77,6 +77,8 @@ def read(source):
                 image /= header['EXPTIME']
             elif 'EXPOSURE' in header:
                 image /= header['EXPOSURE']
+            if 'NBIN' in header:
+                image /= header['NBIN']
             if 'DATE_OBS' in header:
                 header['DATE-OBS'] = header['DATE_OBS']
             read_noise = None
