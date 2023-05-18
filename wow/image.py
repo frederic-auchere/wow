@@ -315,11 +315,6 @@ class Sequence:
         return all(all(f.header[k] == self.frames[0].header[k] for k in keys) for f in self.frames[1:])
 
     def process(self):
-        def from_header(frame):
-            is_fsi = 'FSI' in frame.header['TELESCOP'] if 'TELESCOP' in frame.header else False
-            return {
-                    'is_fsi': is_fsi,
-                    }
 
         fps = self.kwargs["frame_rate"]
         writer = NamedTemporaryFile(delete=False)
@@ -334,8 +329,7 @@ class Sequence:
                                                     'gamma_min': gamma_min,
                                                     'gamma_max': gamma_max,
                                                     'register': False,
-                                                    'enhance': True},
-                                                 **from_header(self.frames[0])}
+                                                    'enhance': True}}
                                                 )
         pool_args = [{**self.kwargs,
                       **{'source': f.source,
@@ -406,7 +400,7 @@ class Sequence:
                                       gamma_max=gamma_max)
 
         if kwargs['register']:
-            is_fsi = kwargs['is_fsi'] if 'is_fsi' in kwargs else False
+            is_fsi = 'FSI' in image.header['TELESCOP'] if 'TELESCOP' in image.header else False
             xy = kwargs['xy'] if 'xy' in kwargs else None  # and not is_fsi else None
             image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
 
