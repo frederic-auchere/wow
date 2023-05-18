@@ -340,7 +340,6 @@ class Sequence:
                          'norm': norm,
                          'register': self.kwargs['register'] >= 0 and not self.kwargs['temporal'],
                          'enhance': not self.kwargs['temporal']},
-                      **from_header(f)
                       } for f, xy in zip(self.frames, self.xy)]
         with Pool(max(1, cpu_count()-1) if self.kwargs['n_procs'] == 0 else self.kwargs['n_procs']) as pool:
             res = list(tqdm(pool.imap(self.process_single_frame, pool_args), desc='Processing', total=len(self.frames)))
