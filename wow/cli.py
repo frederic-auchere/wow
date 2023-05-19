@@ -26,6 +26,9 @@ def cli():
     source_group.add_argument("--selektor",
                               metavar="Selektor query",
                               help="Queries Selektor for EUI observations", type=str, nargs="+")
+    source_group.add_argument("--ascii",
+                              metavar="Input ASCII file",
+                              help="ASCII file containing list of input files", type=str)
     parser.add_argument("-o", "--output",
                         help="Output filename. Frames are saved in its base directory.",
                         type=str)
@@ -126,5 +129,8 @@ def cli():
             args.source = local_files
         else:
             sys.exit(1)
+    elif args.ascii:
+        with open(args.ascii, 'r') as f:
+            args.source = f.readlines()
 
     main(**vars(args))
