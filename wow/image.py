@@ -401,9 +401,8 @@ class Sequence:
                                       gamma_max=gamma_max)
 
         if kwargs['register']:
-            is_fsi = 'FSI' in image.header['TELESCOP'] if 'TELESCOP' in image.header else False
-            xy = kwargs['xy'] if 'xy' in kwargs else None  # and not is_fsi else None
-            image.geometric_rectification(target=xy, north_up=kwargs['north_up'], center=is_fsi)
+            xy = kwargs['xy'] if 'xy' in kwargs else None  # and not :w else None
+            image.geometric_rectification(target=xy, north_up=kwargs['north_up'], center=kwargs['center_sun'])
 
         clock = None if kwargs['no_clock'] else image.header['DATE-OBS']
         if 'norm' in kwargs:

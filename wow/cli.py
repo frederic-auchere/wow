@@ -64,6 +64,9 @@ def cli():
     parser.add_argument("-nu", "--north_up",
                         help="Rotate images north up",
                         action="store_true")
+    parser.add_argument("-cs", "--center_sun",
+                        help="Center solar disk",
+                        action="store_true")
     parser.add_argument("-ne", "--no_encode",
                         help="Do not encode the frames to video",
                         action='store_true')
