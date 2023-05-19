@@ -61,6 +61,9 @@ def cli():
                         help="Order of polynomial used to fit the header data to register the frames.",
                         type=int,
                         default=1)
+    parser.add_argument("-nu", "--north_up",
+                        help="Rotate images north up",
+                        action="store_true")
     parser.add_argument("-ne", "--no_encode",
                         help="Do not encode the frames to video",
                         action='store_true')

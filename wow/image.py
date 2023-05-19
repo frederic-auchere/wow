@@ -403,7 +403,7 @@ class Sequence:
         if kwargs['register']:
             is_fsi = 'FSI' in image.header['TELESCOP'] if 'TELESCOP' in image.header else False
             xy = kwargs['xy'] if 'xy' in kwargs else None  # and not is_fsi else None
-            image.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
+            image.geometric_rectification(target=xy, north_up=kwargs['north_up'], center=is_fsi)
 
         clock = None if kwargs['no_clock'] else image.header['DATE-OBS']
         if 'norm' in kwargs:
