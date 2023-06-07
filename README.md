@@ -138,15 +138,15 @@ wow --source my/directory/*20221002*.fits -o movie.mp4
 
 Note that the DATE-BEG FITS keyword indicates the beginning of an exposure. The *start* and *end* suffixes are added to *date_begin* to form the *date_begin_start* and *date_begin_end* parameters, which can be confusing. 
 
-When passed the `-- selektor [query]` option, the `wow` executable uses Selektor's filtering capability to obtain, *e.g.* a list of FSI 174 image between two given dates, while excluding too short exposure times. Note that `eui_selektor_client` queries the EUI archive but **does not** download the data itself. It is up to the user to make sure that the data is available in a directory tree organized by `YYYY/MM/DD`. An environment variable named `EUI_ARCHIVE_DATA_PATH` must point at the root of the data tree. For example, the file `solo_L2_eui-hrieuv174-image_20220317T032000234_V01.fits` must be located in the `EUI_ARCHIVE_DATA_PATH/L2/2022/03/17` directory:
+When passed the `-- selektor [query]` option, the `wow` executable uses Selektor's filtering capability to obtain, *e.g.* a list of FSI 174 image between two given dates, while excluding too short exposure times. Note that `eui_selektor_client` queries the EUI archive but **does not** download the data itself. It is up to the user to make sure that the data is available in a directory tree organized by `YYYY/MM/DD`. An environment variable named `EUI_ARCHIVE_DATA_PATH` must point at the root of the data tree. For example, the file `solo_L1_eui-hrieuv174-image_20220317T032000234_V01.fits` must be located in the `EUI_ARCHIVE_DATA_PATH/L1/2022/03/17` directory:
 
 ```shell
 EUI_ARCHIVE_DATA_PATH
-├─ L2
+├─ L1
 │  ├─ 2022/
 │  │  ├─ 03
 │  │  │  ├─ 17
-│  │  │  │  ├─ solo_L2_eui-hrieuv174-image_20220317T032000234_V01.fits
+│  │  │  │  ├─ solo_L1_eui-hrieuv174-image_20220317T032000234_V01.fits
 ```
 
 #### Examples
