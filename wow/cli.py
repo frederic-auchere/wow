@@ -73,6 +73,9 @@ def cli():
     parser.add_argument("-ne", "--no_encode",
                         help="Do not encode the frames to video",
                         action='store_true')
+    parser.add_argument("-c", "--cleanup",
+                        help="Cleanup frames after encoding",
+                        action='store_true')
     parser.add_argument("-fps", "--frame-rate",
                         help="Number of frames per second",
                         default=12,

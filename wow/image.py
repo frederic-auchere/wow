@@ -32,6 +32,8 @@ def read(source):
             for hdu in hdul:
                 if hdu.data is not None:
                     image = np.float32(hdu.data)
+                    if image.ndim == 3:
+                        print(source)
                     header = hdu.header
                     break
         if 'eui-fsi' in source:
@@ -362,6 +364,10 @@ class Sequence:
                             "-crf", f"{crf}",
                             "-r", f"{fps}",
                             "-y", os.path.join(self.output_directory, self.output_file)])
+            if self.kwargs['cleanup']:
+                writer.seek(0)
+                for line in writer.readlines():
+                    os.remove(line[5:-1])
         os.unlink(writer.name)
 
     @staticmethod
