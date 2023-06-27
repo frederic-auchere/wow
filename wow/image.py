@@ -352,7 +352,6 @@ class Sequence:
             writer.write(line.encode())
             line = f"duration {1 / fps:.2f}\n"
             writer.write(line.encode())
-        writer.close()
         if not self.kwargs['no_encode'] and len(self.frames) > 1:
             crf = self.kwargs["crf"]
             subprocess.run(["ffmpeg",
@@ -364,9 +363,11 @@ class Sequence:
                             "-crf", f"{crf}",
                             "-r", f"{fps}",
                             "-y", os.path.join(self.output_directory, self.output_file)])
+            writer.seek(0)
             if self.kwargs['cleanup']:
                 for line in writer.readlines():
                     os.remove(line[5:-1])
+        writer.close()
         os.unlink(writer.name)
 
     @staticmethod
