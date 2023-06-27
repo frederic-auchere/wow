@@ -366,7 +366,7 @@ class Sequence:
             writer.seek(0)
             if self.kwargs['cleanup']:
                 for line in writer.readlines():
-                    os.remove(line[5:-1])
+                    os.remove(line[6:-2])
         writer.close()
         os.unlink(writer.name)
 
