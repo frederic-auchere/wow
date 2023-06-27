@@ -365,7 +365,7 @@ class Sequence:
                             "-y", os.path.join(self.output_directory, self.output_file)])
             writer.seek(0)
             if self.kwargs['cleanup']:
-                for line in writer.readlines():
+                for line in writer.readlines()[::2]:
                     os.remove(line[6:-2])
         writer.close()
         os.unlink(writer.name)
