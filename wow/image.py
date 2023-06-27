@@ -365,7 +365,6 @@ class Sequence:
                             "-r", f"{fps}",
                             "-y", os.path.join(self.output_directory, self.output_file)])
             if self.kwargs['cleanup']:
-                writer.seek(0)
                 for line in writer.readlines():
                     os.remove(line[5:-1])
         os.unlink(writer.name)
