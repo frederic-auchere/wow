@@ -74,6 +74,12 @@ def read(source):
             read_noise = None
             gain = None
             dn_per_photon = 1
+        elif 'euA' or 'euB' in source:
+            if 'EXPTIME' in header:
+                image /= header['EXPTIME']
+            read_noise = None
+            gain = None
+            dn_per_photon = 1
         elif 'efz' in file or 'EIT' in file:
             if 'EXPTIME' in header:
                 image /= header['EXPTIME']
@@ -107,6 +113,10 @@ class Image:
              'eit195': 'sohoeit195',
              'eit284': 'sohoeit284',
              'eit304': 'sohoeit304',
+             'euvi171': 'euvi171',
+             'euvi195': 'euvi195',
+             'euvi284': 'euvi284',
+             'euvi304': 'euvi304',
              'hrieuv': 'solar orbiterhri_euv174',
              'hrilya': 'solar orbiterhri_lya1216',
              'fsi174': 'solar orbiterfsi174',
