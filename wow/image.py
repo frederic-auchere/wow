@@ -164,7 +164,7 @@ class Image:
                     self._instrument = 'eit' + str(self.header['WAVELNTH'])
                 elif self.header['TELESCOP'] == 'STEREO':
                     if self.header['DETECTOR'] == 'EUVI':
-                        self._instrument = 'euvi'
+                        self._instrument = 'euvi' + str(self.header['WAVELNTH'])
                 elif self.header['TELESCOP'] == 'SOHO':
                     if self.header['INSTRUME'] == 'EIT':
                         self._instrument = 'eit' + str(self.header['WAVELNTH'])
