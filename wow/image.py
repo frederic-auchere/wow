@@ -459,7 +459,7 @@ class Sequence:
 
             f.read(array=cube[i])
             if self.kwargs['register'] >= 0:
-                f.geometric_rectification(target=xy, north_up=is_fsi, center=is_fsi)
+                f.geometric_rectification(target=xy, north_up=self.kwargs['north_up'], center=is_fsi)
 
             if f.noise is not None:
                 noise[i] = f.noise
