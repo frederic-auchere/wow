@@ -295,8 +295,8 @@ class Image:
         self.header['NAXIS2'] /= binning
         self.header['CDELT1'] *= binning
         self.header['CDELT2'] *= binning
-        self.header['CRPIX1'] = (self.header['NAXIS1'] + 1) / 2
-        self.header['CRPIX2'] = (self.header['NAXIS2'] + 1) / 2
+        self.header['CRPIX1'] = (self.header['CRPIX1'] - 1) / binning + 1
+        self.header['CRPIX2'] = (self.header['CRPIX2'] - 1) / binning + 1
         self.data = rebin(self.data, [s // binning for s in self.data.shape])
 
 
