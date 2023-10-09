@@ -60,6 +60,8 @@ def read(source):
             dn_per_photon = electron_per_photon / electron_per_dn
             gain = dn_per_photon
             read_noise = 1.15
+            if 'CROTA2' in header and 'CROTA' not in header:
+                header['CROTA'] = header['CROTA2']
         elif 'lasco' in source:
             header['XPOSURE'] = header['EXPTIME']
             image /= header['XPOSURE']
