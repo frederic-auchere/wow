@@ -301,6 +301,12 @@ class Image:
         self.header['CRPIX2'] = (self.header['CRPIX2'] - 1) / binning + 1
         self.data = rebin(self.data, [s // binning for s in self.data.shape])
 
+    def rotate(self, angle):
+        if angle in (90, 180, 270):
+            self.data = np.rot90(self.data, angle // 90)
+            self.header['NAXIS1'], self.header['NAXIS2'] = self.header['NAXIS2'], self.header['NAXIS1']
+            self.header['CRPIX1'], self.header['CRPIX2'] = self.header['CRPIX2'], self.header['CRPIX1']
+            self.header['CDELT1'], self.header['CDELT2'] = self.header['CDELT2'], self.header['CDELT1']
 
 class Sequence:
     def __init__(self, files, **kwargs):
@@ -439,6 +445,8 @@ class Sequence:
                 label += ' WOW-enhanced'
         if kwargs['rebin'] > 1:
             image.rebin(kwargs['rebin'])
+        image.rotate(kwargs['rotate'])
+
         fig, ax = make_frame(image.data, title=label, norm=norm, clock=clock, cmap=image.cmap)
 
         output_directory = kwargs['output_directory']

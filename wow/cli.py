@@ -105,6 +105,10 @@ def cli():
                         help="binning factor",
                         default=1,
                         type=int)
+    parser.add_argument("-rt", "--rotate",
+                        help="Counter-clockwise 90 / 180 / 270° rotation",
+                        default=0,
+                        type=int)
     parser.add_argument("-tf", "--to_fits",
                         help="Save to fits",
                         action='store_true')
