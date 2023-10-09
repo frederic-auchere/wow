@@ -418,6 +418,7 @@ class Sequence:
             gamma_max = kwargs['gamma_max'] if 'gamma_max' in kwargs else None
             image.data, _ = utils.wow(image.data,
                                       denoise_coefficients=kwargs['denoise'],
+                                      weights=kwargs['weights'],
                                       noise=image.noise,
                                       n_scales=kwargs['n_scales'],
                                       bilateral=None if kwargs['no_bilateral'] else 1,
@@ -458,6 +459,7 @@ class Sequence:
                 image.header['GAMMA'] = kwargs['gamma']
                 image.header['GAMMAW'] = kwargs['gamma_weight']
                 image.header['DENOISE'] = str(kwargs['denoise'])
+                image.header['WEIGHTS'] = str(kwargs['weights'])
                 image.header['BILATERA'] = 'None' if kwargs['no_bilateral'] else 1
                 image.header['TEMPORAL'] = 'True' if kwargs['temporal'] else 'False'
                 image.header['INTERVAL'] = str(kwargs['interval'])
@@ -489,6 +491,7 @@ class Sequence:
 
         cube[:], _ = utils.wow(cube,
                                denoise_coefficients=self.kwargs['denoise'],
+                               weights=self.kwargs['weights'],
                                noise=noise,
                                n_scales=self.kwargs['n_scales'],
                                bilateral=None if self.kwargs['no_bilateral'] else 1,

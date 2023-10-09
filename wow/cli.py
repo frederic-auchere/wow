@@ -37,6 +37,11 @@ def cli():
                         default=[],
                         type=float,
                         nargs='+')
+    parser.add_argument("-w", "--weights",
+                        help="Synthesis weights",
+                        default=[],
+                        type=float,
+                        nargs='+')
     parser.add_argument("-nb", "--no_bilateral",
                         help="Do not use edge-aware (bilateral) transform",
                         action='store_true')
