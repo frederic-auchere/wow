@@ -55,8 +55,8 @@ The `wow` executable can be called from the command line to produce movies from 
 ```shell
 wow --help
 
-usage: WOW! [-h] (--source SOURCE | --selektor Selektor query [Selektor query ...]) [-o OUTPUT] [-d DENOISE [DENOISE ...]] [-nb] [-ns N_SCALES] [-gw GAMMA_WEIGHT] [-g GAMMA] [-nw]
-            [-t] [-roi ROI ROI ROI ROI] [-r REGISTER] [-ne] [-fps FRAME_RATE] [-crf CRF] [-np N_PROCS] [-nc] [-fn FIRST_N] [-i INTERVAL INTERVAL] [-rb REBIN] [-tf]
+usage: WOW! [-h] (--source SOURCE | --selektor Selektor query [Selektor query ...] | --ascii Input ASCII file) [-o OUTPUT] [-d DENOISE [DENOISE ...]] [-w WEIGHTS [WEIGHTS ...]] [-nb] [-ns N_SCALES] [-gw GAMMA_WEIGHT] [-g GAMMA]
+            [-nw] [-t] [-roi ROI ROI ROI ROI] [-r REGISTER] [-nu] [-cs] [-ne] [-c] [-fps FRAME_RATE] [-crf CRF] [-np N_PROCS] [-nc] [-nl] [-fn FIRST_N] [-i INTERVAL INTERVAL] [-rb REBIN] [-rt ROTATE] [-tf]
 
 Processes a sequence of files with Wavelets Optimized Whitening and encodes the frames to video.
 
@@ -65,10 +65,14 @@ optional arguments:
   --source SOURCE       List of files, directories or glob patterns
   --selektor Selektor query [Selektor query ...]
                         Queries Selektor for EUI observations
+  --ascii Input ASCII file
+                        ASCII file containing list of input files
   -o OUTPUT, --output OUTPUT
                         Output filename. Frames are saved in its base directory.
   -d DENOISE [DENOISE ...], --denoise DENOISE [DENOISE ...]
                         De-noising coefficients
+  -w WEIGHTS [WEIGHTS ...], --weights WEIGHTS [WEIGHTS ...]
+                        Synthesis weights
   -nb, --no_bilateral   Do not use edge-aware (bilateral) transform
   -ns N_SCALES, --n_scales N_SCALES
                         Number of wavelet scales
@@ -81,20 +85,22 @@ optional arguments:
   -roi ROI ROI ROI ROI  Region of interest [bottom left, top right corners]
   -r REGISTER, --register REGISTER
                         Order of polynomial used to fit the header data to register the frames.
+  -nu, --north_up       Rotate images north up
+  -cs, --center_sun     Center solar disk
   -ne, --no_encode      Do not encode the frames to video
+  -c, --cleanup         Cleanup frames after encoding
   -fps FRAME_RATE, --frame-rate FRAME_RATE
                         Number of frames per second
   -crf CRF              FFmpeg crf quality parameter
   -np N_PROCS, --n_procs N_PROCS
-                        Number of processors to use
+                        Number of processors to use. By default, uses 1 or the maximum available -1
   -nc, --no-clock       Do not inset clock
+  -nl, --no-label       Do not inset time stamp & label
   -fn FIRST_N, --first_n FIRST_N
                         Process only the first N frames
   -i INTERVAL INTERVAL, --interval INTERVAL INTERVAL
                         Percentile to use for scaling
   -rb REBIN, --rebin REBIN
-                        binning factor
-  -tf, --to_fits        Save to fits
 ```
 
 
