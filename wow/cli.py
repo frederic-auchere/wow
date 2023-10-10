@@ -68,7 +68,7 @@ def cli():
     parser.add_argument("-r", "--register",
                         help="Order of polynomial used to fit the header data to register the frames.",
                         type=int,
-                        default=1)
+                        default=0)
     parser.add_argument("-nu", "--north_up",
                         help="Rotate images north up",
                         action="store_true")
