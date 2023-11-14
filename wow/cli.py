@@ -143,6 +143,6 @@ def cli():
             sys.exit(1)
     elif args.ascii:
         with open(args.ascii, 'r') as f:
-            args.source = f.readlines()
+            args.source = [line.rstrip() for line in f]
 
     main(**vars(args))
