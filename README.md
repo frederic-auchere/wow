@@ -170,4 +170,4 @@ wow --selektor detector[]:HRI_EUV date_begin_start:2022-10-19 date_begin_end:202
 
 # References
 
-Auchère, F., Soubrié, E., Pelouze, G. and Buchlin, É. 2022, *Image Enhancement With Wavelets Optimized Whitening*, A&A, in press
+[Auchère, F., Soubrié, E., Pelouze, G. and Buchlin, É. 2022, *Image Enhancement With Wavelets Optimized Whitening*, A&A, 670, id.A66](https://www.aanda.org/articles/aa/pdf/2023/02/aa45345-22.pdf)
