@@ -155,6 +155,14 @@ EUI_ARCHIVE_DATA_PATH
 │  │  │  │  ├─ solo_L1_eui-hrieuv174-image_20220317T032000234_V01.fits
 ```
 
+#### From an ASCII file
+
+A movie can be assembled from a list of file stored as individual lines in an ascii file. Full paths must be providdd.  
+
+```shell
+wow --ascii file.txt -o movie.mp4
+```
+
 #### Examples
 
 Queries selektor to create a video file in the movie directory from all the FSI 304 images from 2022-10-01 to 2022-10-30, excluding exposures shorter than 1 second (note that `2022-10-30` means `2022-10-30T00:00:00`):
