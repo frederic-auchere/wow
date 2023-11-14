@@ -76,14 +76,14 @@ def read(source):
             read_noise = None
             gain = None
             dn_per_photon = 1
-        elif 'euA' or 'euB' in source:
+        elif 'euA' in source or 'euB' in source:
             if 'EXPTIME' in header:
                 image /= header['EXPTIME']
             read_noise = None
             gain = None
             dn_per_photon = 1
-        elif 'efz' in file or 'EIT' in file:
-            if 'efz' in file:
+        elif 'efz' in source or 'EIT' in source:
+            if 'efz' in source:
                 if 'EXPTIME' in header:
                     image /= header['EXPTIME']
                 elif 'EXPOSURE' in header:
