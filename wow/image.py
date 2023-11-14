@@ -344,7 +344,11 @@ class Sequence:
 
         fps = self.kwargs["frame_rate"]
         writer = NamedTemporaryFile(delete=False)
-        gamma_min, gamma_max = AsymmetricPercentileInterval(*self.kwargs['interval']).get_limits(self.frames[0].data)
+        mini, maxi = self.kwargs['interval']
+        interval_maxi = maxi if maxi < 100 else 100
+        gamma_min, gamma_max = AsymmetricPercentileInterval(mini, interval_maxi).get_limits(self.frames[0].data)
+        if maxi > 100:
+            gamma_max *= maxi / 100
 
         if self.kwargs['temporal']:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
