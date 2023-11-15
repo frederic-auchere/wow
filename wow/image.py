@@ -347,12 +347,10 @@ class Sequence:
         mini, maxi = self.kwargs['interval']
         interval_maxi = maxi if maxi < 100 else 100
         gamma_min, gamma_max = AsymmetricPercentileInterval(mini, interval_maxi).get_limits(self.frames[0].data)
-        if maxi > 100:
-            gamma_max *= maxi / 100
 
         if self.kwargs['temporal']:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
-            norm = ImageNormalize(cube, interval=AsymmetricPercentileInterval(*self.kwargs['interval']), stretch=LinearStretch())
+            norm = ImageNormalize(cube, interval=AsymmetricPercentileInterval(mini, interval_maxi), stretch=LinearStretch())
         else:
             norm, _ = self.process_single_frame({**self.kwargs,
                                                  **{'source': self.frames[0].source,
@@ -361,6 +359,10 @@ class Sequence:
                                                     'register': False,
                                                     'enhance': True}}
                                                 )
+
+        if maxi > 100:
+            gamma_max *= maxi / 100
+
         pool_args = [{**self.kwargs,
                       **{'source': f.source,
                          'gamma_min': gamma_min,
