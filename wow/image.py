@@ -352,6 +352,8 @@ class Sequence:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
             norm = ImageNormalize(cube, interval=AsymmetricPercentileInterval(mini, interval_maxi), stretch=LinearStretch())
         else:
+            if maxi > 100:
+                gamma_max *= maxi / 100
             norm, _ = self.process_single_frame({**self.kwargs,
                                                  **{'source': self.frames[0].source,
                                                     'gamma_min': gamma_min,
@@ -359,9 +361,6 @@ class Sequence:
                                                     'register': False,
                                                     'enhance': True}}
                                                 )
-
-        if maxi > 100:
-            gamma_max *= maxi / 100
 
         pool_args = [{**self.kwargs,
                       **{'source': f.source,
