@@ -106,7 +106,7 @@ def cli():
                         default=[0.1, 99.9],
                         nargs=2,
                         type=float)
-    parser.add_argument("-im", "--interval-margin",
+    parser.add_argument("-im", "--interval_margin",
                         help="Factor applied to interval top boundary",
                         default=1,
                         type=float)

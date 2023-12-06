@@ -345,7 +345,7 @@ class Sequence:
         fps = self.kwargs["frame_rate"]
         writer = NamedTemporaryFile(delete=False)
         gamma_min, gamma_max = AsymmetricPercentileInterval(*self.kwargs['interval']).get_limits(self.frames[0].data)
-        gamma_max *= self.kwargs['interval-margin']
+        gamma_max *= self.kwargs['interval_margin']
 
         if self.kwargs['temporal']:
             cube = self.prep_cube(gamma_min=gamma_min, gamma_max=gamma_max)
@@ -439,7 +439,7 @@ class Sequence:
             norm = kwargs['norm']
         else:
             mini, maxi = AsymmetricPercentileInterval(*kwargs['interval']).get_limits(image.data)
-            maxi *= kwargs['interval-margin']
+            maxi *= kwargs['interval_margin']
             norm = ImageNormalize(vmin=mini, vmax=maxi, stretch=LinearStretch())
         if kwargs['no_label']:
             label = None
