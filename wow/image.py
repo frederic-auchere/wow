@@ -439,6 +439,7 @@ class Sequence:
             norm = kwargs['norm']
         else:
             mini, maxi = AsymmetricPercentileInterval(*kwargs['interval']).get_limits(image.data)
+            maxi *= kwargs['interval-margin']
             norm = ImageNormalize(vmin=mini, vmax=maxi, stretch=LinearStretch())
         if kwargs['no_label']:
             label = None
