@@ -9,7 +9,7 @@ mp.use('Agg')
 def main(**kwargs):
     source = kwargs['source']
     if type(source) is not list:
-        source = [source]
+        source = glob.glob(source)
     files = []
     for s in source:
         if os.path.isfile(s):

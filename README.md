@@ -157,7 +157,7 @@ EUI_ARCHIVE_DATA_PATH
 
 #### From an ASCII file
 
-A movie can be assembled from a list of file stored as individual lines in an ascii file. Full paths must be providdd.  
+A movie can be assembled from a list of file stored as individual lines in an ascii file. Full paths must be provided.  
 
 ```shell
 wow --ascii file.txt -o movie.mp4
