@@ -1,5 +1,5 @@
 # WOW!
-Wavelets Enhanced Whitening
+Wavelets Optimized Whitening
 ___
 
 ## Installation
