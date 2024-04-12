@@ -5,3 +5,4 @@ tqdm>=4.64
 astropy>=5.1
 matplotlib>=3.6.1
 sunpy>=4.0.5
+watroo~=0.01

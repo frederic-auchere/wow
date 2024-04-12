@@ -7,7 +7,6 @@ ___
 Prior to installing WOW, the following packages must be installed from their respective GitHub repositories: 
 
  * [eui_selektor_client](https://github.com/gpelouze/eui_selektor_client) (lightweight client for the EUI Selektor)
- * [watroo](https://github.com/frederic-auchere/wavelets) (à trous wavelets transforms)
  * [rectify](https://github.com/frederic-auchere/rectify) (geometric remapping)
 
 Then, after cloning the present repository:
