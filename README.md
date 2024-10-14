@@ -59,6 +59,12 @@ usage: WOW! [-h] (--source SOURCE | --selektor Selektor query [Selektor query ..
 
 Processes a sequence of files with Wavelets Optimized Whitening and encodes the frames to video.
 
+optusage: WOW! [-h] (--source SOURCE | --selektor Selektor query [Selektor query ...] | --ascii Input ASCII file) [-o OUTPUT] [-d DENOISE [DENOISE ...]]
+            [-w WEIGHTS [WEIGHTS ...]] [-nb] [-ns N_SCALES] [-gw GAMMA_WEIGHT] [-g GAMMA] [-nw] [-t] [-roi ROI ROI ROI ROI] [-r REGISTER] [-nu] [-cs] [-ne] [-c]
+            [-fps FRAME_RATE] [-crf CRF] [-np N_PROCS] [-nc] [-nl] [-fn FIRST_N] [-i INTERVAL INTERVAL] [-im INTERVAL_MARGIN] [-rb REBIN] [-rt ROTATE] [-tf]
+
+Processes a sequence of files with Wavelets Optimized Whitening and encodes the frames to video.
+
 optional arguments:
   -h, --help            show this help message and exit
   --source SOURCE       List of files, directories or glob patterns
@@ -99,7 +105,13 @@ optional arguments:
                         Process only the first N frames
   -i INTERVAL INTERVAL, --interval INTERVAL INTERVAL
                         Percentile to use for scaling
+  -im INTERVAL_MARGIN, --interval_margin INTERVAL_MARGIN
+                        Factor applied to interval top boundary
   -rb REBIN, --rebin REBIN
+                        binning factor
+  -rt ROTATE, --rotate ROTATE
+                        Counter-clockwise 90 / 180 / 270° rotation
+  -tf, --to_fits        Save to fits
 ```
 
 
