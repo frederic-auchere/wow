@@ -222,8 +222,8 @@ class Image:
             self._noise[self._noise <= 0] = 1
         return self._noise
 
-    def read(self, array=None):
-        image, header, gain, read_noise = read(self.source)
+    def read(self, array=None, photons=True):
+        image, header, gain, read_noise = read(self.source, photons=photons)
         header['GAIN'] = gain
         header['RDNOISE'] = read_noise
         if self._data is None:
