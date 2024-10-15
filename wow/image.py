@@ -24,7 +24,7 @@ def fsi_fix_shift(img):
         img[:, -1] = 0
 
 
-def read(source):
+def read(source, photons=True):
     ext = os.path.splitext(source)[1]
     file = os.path.split(source)[1]
     if ext == '.fit' or ext == '.fits' or ext == '.fts' or 'efz' in file:
@@ -99,7 +99,8 @@ def read(source):
             read_noise = None
             gain = None
             dn_per_photon = 1
-        image /= dn_per_photon
+        if photons:
+            image /= dn_per_photon
     else:
         image = cv2.imread(source)
         image = np.float32(image.sum(axis=2))
