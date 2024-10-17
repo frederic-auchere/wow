@@ -96,8 +96,6 @@ def read(source, photons=True):
             gain = None
             dn_per_photon = 1
         elif 'swap' in source:
-            if 'EXPTIME' in header:
-                image /= header['EXPTIME']
             header['CROTA'] = header['CROTA2']
             read_noise = None
             gain = None
