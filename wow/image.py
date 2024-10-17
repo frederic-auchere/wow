@@ -247,7 +247,7 @@ class Image:
         self._data = array
         self.header = header
 
-    def geometric_rectification(self, target=None, north_up=True, center=True, order=2, opencv=True):
+    def geometric_rectification(self, target=None, north_up=True, center=True, **kwargs):
 
         if target is None:
             if center:
@@ -290,7 +290,7 @@ class Image:
         xfov = 0, self.data.shape[1]-1
         yfov = 0, self.data.shape[0]-1
 
-        self.data[:] = rectifier(self.data, self.data.shape, xfov, yfov, order=order, opencv=opencv)
+        self.data[:] = rectifier(self.data, self.data.shape, xfov, yfov, **kwargs)
 
         if center:
             self.header['CRVAL1'] = 0
