@@ -95,6 +95,12 @@ def read(source, photons=True):
             read_noise = None
             gain = None
             dn_per_photon = 1
+        elif 'swap' in source:
+            if 'EXPTIME' in header:
+                image /= header['EXPTIME']
+            read_noise = None
+            gain = None
+            dn_per_photon = 1
         else:
             read_noise = None
             gain = None
@@ -125,6 +131,7 @@ class Image:
              'hrilya': 'solar orbiterhri_lya1216',
              'fsi174': 'solar orbiterfsi174',
              'fsi304': 'solar orbiterfsi304',
+             'swap174': 'solar orbiterfsi174',
              'aia94': 'sdoaia94',
              'aia131': 'sdoaia131',
              'aia171': 'sdoaia171',
@@ -174,6 +181,8 @@ class Image:
                         self._instrument = 'eit' + str(self.header['WAVELNTH'])
                     else:
                         self._instrument = None
+                elif self.header['TELESCOP'] == 'PROBA2':
+                    self._instrument = 'swap174'
                 else:
                     self._instrument = None
             else:
