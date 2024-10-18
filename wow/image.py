@@ -101,6 +101,10 @@ def read(source, photons=True):
             read_noise = None
             gain = None
             dn_per_photon = 1
+        elif '_SUVI-' in source:
+            read_noise = None
+            gain = None
+            dn_per_photon = 1
         else:
             read_noise = None
             gain = None
@@ -139,7 +143,8 @@ class Image:
              'aia1211': 'sdoaia211',
              'aia304': 'sdoaia304',
              'aia335': 'sdoaia335',
-             'metis': 'gray'
+             'metis': 'gray',
+             'suvi171': 'solar orbiterhri_euv174'
              }
 
     def __init__(self, source, roi=None):
@@ -183,6 +188,8 @@ class Image:
                         self._instrument = None
                 elif self.header['TELESCOP'] == 'PROBA2':
                     self._instrument = 'swap174'
+                elif self.header['PROJECT'] == 'GOES':
+                    self._instrument = 'suvi171'
                 else:
                     self._instrument = None
             else:
