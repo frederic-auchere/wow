@@ -2,8 +2,13 @@ import os
 import sys
 import argparse
 from .wow import main
-from eui_selektor_client import EUISelektorClient
-from eui_selektor_client.cli import parse_query_args
+
+try:
+    from eui_selektor_client import EUISelektorClient
+    from eui_selektor_client.cli import parse_query_args
+    SELEKTOR_AVAILABLE = True
+except ImportError:
+    SELEKTOR_AVAILABLE = False
 
 
 def eui_file2path(file, archive_path=''):
@@ -124,7 +129,7 @@ def cli():
 
     args = parser.parse_args()
 
-    if args.selektor:
+    if args.selektor and SELEKTOR_AVAILABLE:
         client = EUISelektorClient()
         query = parse_query_args(args.selektor)
         res = client.search_nolimit(query)
