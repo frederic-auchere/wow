@@ -16,6 +16,8 @@ from .generic import make_directory, rebin
 from .plotting import make_subplot
 from sunpy.visualization.colormaps import cm
 
+mp.use('Agg')
+
 
 def fsi_fix_shift(img):
     a = np.median(img, axis=0)
@@ -117,6 +119,8 @@ def read(source, photons=True):
         image = np.flipud(image)
         header = None
 
+    image[~np.isfinite(image)] = 0
+
     return image, header, gain, read_noise
 
 
@@ -144,7 +148,8 @@ class Image:
              'aia304': 'sdoaia304',
              'aia335': 'sdoaia335',
              'metis': 'gray',
-             'suvi171': 'solar orbiterhri_euv174'
+             'suvi171': 'solar orbiterhri_euv174',
+             'aspiics': 'gray'
              }
 
     def __init__(self, source, roi=None):
