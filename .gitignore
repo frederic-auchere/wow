@@ -1,2 +1,21 @@
-**/__pycache__
-.venv/
+# All blacklisted
+*
+
+# DIRs whitelisted
+!wow/
+!wow/*/
+!sample_data/*.fits
+
+# TYPEs whitelist
+!**/*.py
+!**/*.md
+!**/*.toml
+!**/*.txt
+
+# BLACKLIST specific dirs
+**/.*/
+**/__pycache__/
+
+# FILEs whitelisted
+!.gitignore
+!LICENSE
